@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace Gamma_Manager
@@ -23,6 +24,14 @@ namespace Gamma_Manager
         bool redColor = false;
         bool greenColor = false;
         bool blueColor = false;
+
+        private static readonly Color BackgroundColor = Color.FromArgb(30,30,30);
+        private static readonly Color ForegroundColor = Color.White;
+        private static readonly Color ButtonColor = Color.FromArgb(60,60,60);
+        private static readonly Color ButtonBorderColor = Color.FromArgb(100,100,100);
+        private static readonly Color ButtonTextColor = Color.White;
+        private static readonly Color TrackBackColor = Color.FromArgb(30,30,30);
+        private static readonly Color TrackForeColor = Color.Aqua;
 
         private void clearColors()
         {
@@ -155,6 +164,9 @@ namespace Gamma_Manager
         public Window()
         {
             InitializeComponent();
+            EnableDarkMode(); // Enable dark mode
+            ApplyDarkMode(this); // Apply dark mode colors
+
             customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
             customCulture.NumberFormat.NumberDecimalSeparator = ",";
 
@@ -162,13 +174,12 @@ namespace Gamma_Manager
 
             buttonAllColors.Font = new Font(buttonAllColors.Font.Name, buttonAllColors.Font.Size, FontStyle.Bold);
 
-
             displays = Display.QueryDisplayDevices();
             displays.Reverse();
             for (int i = 0; i < displays.Count; i++)
             {
                 displays[i].numDisplay = i;
-                comboBoxMonitors.Items.Add(i+1+") "+ displays[i].displayName);
+                comboBoxMonitors.Items.Add(i + 1 + ") " + displays[i].displayName);
             }
             currDisplay = displays[numDisplay];
             comboBoxMonitors.SelectedIndex = numDisplay;
@@ -694,7 +705,168 @@ namespace Gamma_Manager
                 }
             }
         }
+        private void ApplyDarkMode(Control control)
+        {
+            control.BackColor = BackgroundColor;
+            control.ForeColor = ForegroundColor;
+
+            foreach (Control childControl in control.Controls)
+            {
+                if (childControl is Button button)
+                {
+                    button.BackColor = ButtonColor;
+                    button.ForeColor = ButtonTextColor;
+                    button.FlatStyle = FlatStyle.Flat;
+                    button.FlatAppearance.BorderColor = ButtonBorderColor;
+                    button.FlatAppearance.BorderSize = 1;
+                }
+                else if (childControl is TextBox textBox)
+                {
+                    textBox.BackColor = BackgroundColor;
+                    textBox.ForeColor = ForegroundColor;
+                    textBox.BorderStyle = BorderStyle.FixedSingle;
+                }
+                else if (childControl is ComboBox comboBox)
+                {
+                    comboBox.FlatStyle = FlatStyle.Flat;
+                    comboBox.BackColor = BackgroundColor;
+                    comboBox.ForeColor = ForegroundColor;
+                }
+                else if (childControl is TrackBar trackBar)
+                {
+                    trackBar.BackColor = TrackBackColor;
+                    trackBar.ForeColor = TrackForeColor;
+                }
+                else
+                {
+                    ApplyDarkMode(childControl);
+                }
+            }
+        }
+        private void EnableDarkMode()
+        {
+            NativeMethods.SetPreferredAppMode(PreferredAppMode.ForceDark);
+
+            var data = new WindowCompositionAttributeData
+            {
+                Attribute = WindowCompositionAttribute.WCA_USEDARKMODECOLORS,
+                Data = Marshal.AllocHGlobal(sizeof(int)),
+                SizeOfData = sizeof(int)
+            };
+
+            Marshal.WriteInt32(data.Data, 1);
+            NativeMethods.SetWindowCompositionAttribute(this.Handle, ref data);
+            Marshal.FreeHGlobal(data.Data);
+        }
 
         //destroy focuses on buttons, trackbars, comboboxes, text, checkbox
+    }
+
+    internal enum PreferredAppMode
+    {
+        Default,
+        AllowDark,
+        ForceDark,
+        ForceLight,
+        Max
+    }
+
+    internal enum WindowCompositionAttribute
+    {
+        WCA_UNDEFINED = 0,
+        WCA_NCRENDERING_ENABLED = 1,
+        WCA_NCRENDERING_POLICY = 2,
+        WCA_TRANSITIONS_FORCEDISABLED = 3,
+        WCA_ALLOW_NCPAINT = 4,
+        WCA_CAPTION_BUTTON_BOUNDS = 5,
+        WCA_NONCLIENT_RTL_LAYOUT = 6,
+        WCA_FORCE_ICONIC_REPRESENTATION = 7,
+        WCA_EXTENDED_FRAME_BOUNDS = 8,
+        WCA_HAS_ICONIC_BITMAP = 9,
+        WCA_THEME_ATTRIBUTES = 10,
+        WCA_NCRENDERING_EXILED = 11,
+        WCA_NCADORNMENTINFO = 12,
+        WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,
+        WCA_VIDEO_OVERLAY_ACTIVE = 14,
+        WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
+        WCA_DISALLOW_PEEK = 16,
+        WCA_CLOAK = 17,
+        WCA_CLOAKED = 18,
+        WCA_ACCENT_POLICY = 19,
+        WCA_FREEZE_REPRESENTATION = 20,
+        WCA_EVER_UNCLOAKED = 21,
+        WCA_VISUAL_OWNER = 22,
+        WCA_HOLOGRAPHIC = 23,
+        WCA_EXCLUDED_FROM_DDA = 24,
+        WCA_PASSIVEUPDATEMODE = 25,
+        WCA_USEDARKMODECOLORS = 26,
+        WCA_LAST = 27
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct WindowCompositionAttributeData
+    {
+        public WindowCompositionAttribute Attribute;
+        public IntPtr Data;
+        public int SizeOfData;
+    }
+
+    internal static class NativeMethods
+    {
+        [DllImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true)]
+        public static extern int SetPreferredAppMode(PreferredAppMode appMode);
+
+        [DllImport("user32.dll")]
+        public static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+    }
+
+    public class CustomTrackBar : TrackBar
+    {
+        private Color thumbColor = Color.Aqua;
+        private Color trackColor = Color.Gray;
+
+        public Color ThumbColor
+        {
+            get { return thumbColor; }
+            set { thumbColor = value; Invalidate(); }
+        }
+        public Color TrackColor
+        {
+            get { return trackColor; }
+            set { trackColor = value; Invalidate(); }
+        }
+        public CustomTrackBar()
+        {
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+
+            this.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.Size = new System.Drawing.Size(360, 10);
+            this.TickStyle = System.Windows.Forms.TickStyle.Both;
+        }
+        protected override void OnValueChanged(EventArgs e)
+        {
+            base.OnValueChanged(e);
+            this.Invalidate();
+        }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            e.Graphics.Clear(this.BackColor);
+
+            int trackHeight = 1; // Thickness of track
+            int thumbSize = 10;   // Size of the thumb
+
+            int trackY = this.Height / 2 - trackHeight / 2;
+            int thumbX = (int)((float)(this.Value - this.Minimum) / (this.Maximum - this.Minimum) * (this.Width - thumbSize));
+
+            using (Brush trackBrush = new SolidBrush(TrackColor))
+            using (Brush thumbBrush = new SolidBrush(ThumbColor))
+            {
+                e.Graphics.FillRectangle(trackBrush, new Rectangle(0, trackY, this.Width, trackHeight));
+                e.Graphics.FillEllipse(thumbBrush, new Rectangle(thumbX, this.Height / 2 - thumbSize / 2, thumbSize, thumbSize));
+            }
+
+        }
     }
 }
