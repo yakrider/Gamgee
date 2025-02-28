@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Windows.Forms;
 
 namespace Gamma_Manager
 {
@@ -21,7 +22,6 @@ namespace Gamma_Manager
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Window));
-
 
             this.trackBarGamma = new CustomTrackBar{};
             this.buttonRed = new System.Windows.Forms.Button();
@@ -48,6 +48,7 @@ namespace Gamma_Manager
             this.trackBarMonitorBrightness = new CustomTrackBar { };
             this.labelMonitorBrightnessDown = new System.Windows.Forms.Label();
             this.buttonHide = new System.Windows.Forms.Button();
+            this.buttonExit = new System.Windows.Forms.Button();
             this.labelMonitorContrastUp = new System.Windows.Forms.Label();
             this.labelMonitorContrastDown = new System.Windows.Forms.Label();
             this.trackBarMonitorContrast = new CustomTrackBar { };
@@ -190,7 +191,6 @@ namespace Gamma_Manager
             // 
             // buttonRed
             // 
-            this.buttonRed.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttonRed.Location = new System.Drawing.Point(694, 2);
             this.buttonRed.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.buttonRed.Name = "buttonRed";
@@ -338,11 +338,22 @@ namespace Gamma_Manager
             this.buttonHide.Location = new System.Drawing.Point(592, 285);
             this.buttonHide.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.buttonHide.Name = "buttonHide";
-            this.buttonHide.Size = new System.Drawing.Size(206, 44);
+            this.buttonHide.Size = new System.Drawing.Size(104, 44);
             this.buttonHide.TabIndex = 22;
             this.buttonHide.Text = "Hide";
             this.buttonHide.UseVisualStyleBackColor = true;
             this.buttonHide.Click += new System.EventHandler(this.buttonHide_Click);
+            // 
+            // buttonExit
+            // 
+            this.buttonExit.Location = new System.Drawing.Point(694, 285);
+            this.buttonExit.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.buttonExit.Name = "buttonExit";
+            this.buttonExit.Size = new System.Drawing.Size(104, 44);
+            this.buttonExit.TabIndex = 23;
+            this.buttonExit.Text = "Exit";
+            this.buttonExit.UseVisualStyleBackColor = true;
+            this.buttonExit.Click += new System.EventHandler(this.buttonExit_Click);
 
             // 
             // labelMonitorContrastUp
@@ -391,8 +402,9 @@ namespace Gamma_Manager
             this.notifyIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon.Icon")));
             this.notifyIcon.Text = "Gamma Manager";
             this.notifyIcon.Visible = true;
-            this.notifyIcon.DoubleClick += new System.EventHandler(this.notifyIcon_DoubleClick);
-            // 
+            this.notifyIcon.MouseClick       += new MouseEventHandler (this.notifyIcon_Click);
+            this.notifyIcon.MouseDoubleClick += new MouseEventHandler (this.notifyIcon_DoubleClick);
+            //
             // pictureBox1
             // 
             this.pictureBox1.BackColor = System.Drawing.SystemColors.Control;
@@ -406,6 +418,7 @@ namespace Gamma_Manager
             this.pictureBox1.Size = new System.Drawing.Size(384, 326);
             this.pictureBox1.TabIndex = 28;
             this.pictureBox1.TabStop = false;
+            this.pictureBox1.MouseClick += new MouseEventHandler(this.pictureBox_Click);
             // 
             // contextMenu
             // 
@@ -428,6 +441,7 @@ namespace Gamma_Manager
             this.Controls.Add(this.labelMonitorContrastDown);
             this.Controls.Add(this.labelMonitorContrastUp);
             this.Controls.Add(this.buttonHide);
+            this.Controls.Add(this.buttonExit);
             this.Controls.Add(this.labelMonitorBrightnessDown);
             this.Controls.Add(this.comboBoxMonitors);
             this.Controls.Add(this.buttonDelete);
@@ -457,6 +471,9 @@ namespace Gamma_Manager
             this.Text = "Gamma Manager";
             this.TopMost = true;
 
+            this.KeyPreview = true;
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Window_KeyDown);
+
             this.Load += new System.EventHandler(this.Window_Load);
             this.Resize += new System.EventHandler(this.Window_Resize);
             this.Activated += new System.EventHandler(this.Window_Activated);
@@ -475,9 +492,18 @@ namespace Gamma_Manager
 
         #endregion
 
+        private System.Windows.Forms.Label labelGamma;
+        private System.Windows.Forms.Label labelBrightness;
+        private System.Windows.Forms.Label labelContrast;
+
+        private System.Windows.Forms.TextBox textBoxGamma;
+        private System.Windows.Forms.TextBox textBoxBrightness;
+        private System.Windows.Forms.TextBox textBoxContrast;
+
         private CustomTrackBar trackBarGamma;
         private CustomTrackBar trackBarContrast;
         private CustomTrackBar trackBarBrightness;
+
         private CustomTrackBar trackBarMonitorBrightness;
         private CustomTrackBar trackBarMonitorContrast;
 
@@ -489,25 +515,26 @@ namespace Gamma_Manager
         private Krypton.Toolkit.KryptonComboBox comboBoxPresets;
         private Krypton.Toolkit.KryptonComboBox comboBoxMonitors;
 
-        private System.Windows.Forms.Button buttonReset;
+        private System.Windows.Forms.Button buttonForward;
+        private System.Windows.Forms.CheckBox checkBoxExContrast;
+
         private System.Windows.Forms.Button buttonSave;
-        private System.Windows.Forms.TextBox textBoxGamma;
-        private System.Windows.Forms.TextBox textBoxContrast;
-        private System.Windows.Forms.TextBox textBoxBrightness;
-        private System.Windows.Forms.Label labelGamma;
-        private System.Windows.Forms.Label labelContrast;
-        private System.Windows.Forms.Label labelBrightness;
         private System.Windows.Forms.Button buttonDelete;
+
+
         private System.Windows.Forms.Label labelMonitorBrightnessUp;
-        private System.Windows.Forms.TextBox textBoxMonitorBrightness;
         private System.Windows.Forms.Label labelMonitorBrightnessDown;
+        private System.Windows.Forms.TextBox textBoxMonitorBrightness;
+
+        private System.Windows.Forms.Button buttonReset;
         private System.Windows.Forms.Button buttonHide;
+        private System.Windows.Forms.Button buttonExit;
+
         private System.Windows.Forms.Label labelMonitorContrastUp;
         private System.Windows.Forms.Label labelMonitorContrastDown;
         private System.Windows.Forms.TextBox textBoxMonitorContrast;
+
         private System.Windows.Forms.PictureBox pictureBox1;
-        private System.Windows.Forms.Button buttonForward;
-        private System.Windows.Forms.CheckBox checkBoxExContrast;
         private System.Windows.Forms.NotifyIcon notifyIcon;
         private System.Windows.Forms.ContextMenuStrip contextMenu;
     }

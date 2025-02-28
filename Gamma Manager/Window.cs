@@ -144,21 +144,8 @@ namespace Gamma_Manager
         }
         private void Window_Load(object sender, EventArgs e)
         {
-            int screenWidth = Screen.PrimaryScreen.Bounds.Size.Width;
-            int windowWidth = Width;
-            int screenHeight = Screen.PrimaryScreen.Bounds.Size.Height;
-            int windowHeight = Height;
-            int tmp = Screen.PrimaryScreen.Bounds.Height;
-            int TaskBarHeight = tmp - Screen.PrimaryScreen.WorkingArea.Height;
-
-            //dpi
-            /*int PSH = SystemParameters.PrimaryScreenHeight;
-            int PSBH = Screen.PrimaryScreen.Bounds.Height;
-            double ratio = PSH / PSBH;
-            int TaskBarHeight = PSBH - Screen.PrimaryScreen.WorkingArea.Height;
-            TaskBarHeight *= ratio;*/
-
-            Location = new Point(screenWidth - windowWidth, screenHeight - (windowHeight + TaskBarHeight));
+            Rectangle wa = Screen.PrimaryScreen.WorkingArea;
+            Location = new Point(wa.X + wa.Width - Width - 1, wa.Y + wa.Height - Height - 1);
         }
 
         public Window()
@@ -166,6 +153,11 @@ namespace Gamma_Manager
             InitializeComponent();
             EnableDarkMode(); // Enable dark mode
             ApplyDarkMode(this); // Apply dark mode colors
+
+            ShowInTaskbar = false;
+            FormBorderStyle = FormBorderStyle.None;
+            // ^^ removes titlebar .. also makes minimize/restore from taskbar icon no longer work ..
+            // .. which is fine by us as we're disabling showing it in taskbar anyway
 
             customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
             customCulture.NumberFormat.NumberDecimalSeparator = ",";
@@ -536,6 +528,19 @@ namespace Gamma_Manager
         {
             Hide();
         }
+        private void buttonExit_Click(object sender, EventArgs e)
+        {
+            FormClosing -= Window_FormClosing;
+            Close();
+        }
+
+        private void pictureBox_Click(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                Hide();
+            }
+        }
 
         private void comboBoxMonitors_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -605,7 +610,7 @@ namespace Gamma_Manager
         private void Window_Resize(object sender, EventArgs e)
         {
             if (WindowState == FormWindowState.Minimized) {  
-                //Hide(); 
+                Hide(); 
             } else {
                 TopMost = true;
             }
@@ -619,25 +624,35 @@ namespace Gamma_Manager
             e.Cancel = true;
             Hide();
         }
-
-        private void notifyIcon_DoubleClick(object sender, EventArgs e)
+        private void notifyIcon_Click(object sender, MouseEventArgs e)
         {
             Show();
             TopMost = true;
-            WindowState = FormWindowState.Normal;            
+            WindowState = FormWindowState.Normal;
         }
-
+        private void notifyIcon_DoubleClick(object sender, MouseEventArgs e)
+        {
+            Show();
+            TopMost = true;
+            WindowState = FormWindowState.Normal;
+        }
         private void toolSettings_Click(object sender, EventArgs e)
         {
             Show();
             TopMost = true;
             WindowState = FormWindowState.Normal;
         }
-
         private void toolExit_Click(object sender, EventArgs e)
         {
-            this.FormClosing -= Window_FormClosing;
+            FormClosing -= Window_FormClosing;
             Close();
+        }
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Escape)
+            {
+                Hide();
+            }
         }
 
         private void comboBoxToolMonitor_IndexChanged(object sender, EventArgs e)
