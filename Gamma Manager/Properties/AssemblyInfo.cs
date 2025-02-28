@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // Общие сведения об этой сборке предоставляются следующим набором
 // набора атрибутов. Измените значения этих атрибутов для изменения сведений,
 // связанных со сборкой.
-[assembly: AssemblyTitle("Gamma Manager")]
+[assembly: AssemblyTitle("GammaManager")]
 [assembly: AssemblyDescription("Gamma Manager")]
 [assembly: AssemblyConfiguration("Release 1.2")]
 [assembly: AssemblyCompany("KrasnovM")]
-[assembly: AssemblyProduct("Gamma Manager")]
+[assembly: AssemblyProduct("GammaManager")]
 [assembly: AssemblyCopyright("Copyright © 2023")]
 [assembly: AssemblyTrademark("KrasnovM")]
 [assembly: AssemblyCulture("")]

@@ -475,8 +475,9 @@ namespace Gamma_Manager
             iniFile.Write("rBright", currDisplay.rBright.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
             iniFile.Write("gBright", currDisplay.gBright.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
             iniFile.Write("bBright", currDisplay.bBright.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("monitorBrightness", currDisplay.monitorBrightness.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("monitorContrast", currDisplay.monitorContrast.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
+            //iniFile.Write("monitorBrightness", currDisplay.monitorBrightness.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
+            //iniFile.Write("monitorContrast", currDisplay.monitorContrast.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
+            // ^^ we'll keep monitor brighness separate from gamma etc configs for now
 
             initPresets();
             comboBoxPresets.Text = currDisplay.displayName + ": " + tmp;
@@ -574,8 +575,9 @@ namespace Gamma_Manager
                 currDisplay.rBright = float.Parse(iniFile.Read("rBright", comboBoxPresets.Text), customCulture);
                 currDisplay.gBright = float.Parse(iniFile.Read("gBright", comboBoxPresets.Text), customCulture);
                 currDisplay.bBright = float.Parse(iniFile.Read("bBright", comboBoxPresets.Text), customCulture);
-                currDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", comboBoxPresets.Text));
-                currDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", comboBoxPresets.Text));
+                //currDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", comboBoxPresets.Text));
+                //currDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", comboBoxPresets.Text));
+                // ^^ we'll keep monitor brighness separate from gamma etc configs for now
 
                 fillInfo(currDisplay);
                 clearColors();
@@ -724,7 +726,7 @@ namespace Gamma_Manager
                 {
                     textBox.BackColor = BackgroundColor;
                     textBox.ForeColor = ForegroundColor;
-                    textBox.BorderStyle = BorderStyle.FixedSingle;
+                    textBox.BorderStyle = BorderStyle.None;
                 }
                 else if (childControl is ComboBox comboBox)
                 {
@@ -825,16 +827,6 @@ namespace Gamma_Manager
         private Color thumbColor = Color.Aqua;
         private Color trackColor = Color.Gray;
 
-        public Color ThumbColor
-        {
-            get { return thumbColor; }
-            set { thumbColor = value; Invalidate(); }
-        }
-        public Color TrackColor
-        {
-            get { return trackColor; }
-            set { trackColor = value; Invalidate(); }
-        }
         public CustomTrackBar()
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
@@ -860,8 +852,8 @@ namespace Gamma_Manager
             int trackY = this.Height / 2 - trackHeight / 2;
             int thumbX = (int)((float)(this.Value - this.Minimum) / (this.Maximum - this.Minimum) * (this.Width - thumbSize));
 
-            using (Brush trackBrush = new SolidBrush(TrackColor))
-            using (Brush thumbBrush = new SolidBrush(ThumbColor))
+            using (Brush trackBrush = new SolidBrush(trackColor))
+            using (Brush thumbBrush = new SolidBrush(thumbColor))
             {
                 e.Graphics.FillRectangle(trackBrush, new Rectangle(0, trackY, this.Width, trackHeight));
                 e.Graphics.FillEllipse(thumbBrush, new Rectangle(thumbX, this.Height / 2 - thumbSize / 2, thumbSize, thumbSize));
@@ -869,4 +861,5 @@ namespace Gamma_Manager
 
         }
     }
+
 }

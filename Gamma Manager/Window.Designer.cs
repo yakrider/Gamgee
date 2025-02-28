@@ -4,15 +4,8 @@ namespace Gamma_Manager
 {
     partial class Window
     {
-        /// <summary>
-        /// Обязательная переменная конструктора.
-        /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary>
-        /// Освободить все используемые ресурсы.
-        /// </summary>
-        /// <param name="disposing">истинно, если управляемый ресурс должен быть удален; иначе ложно.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -24,26 +17,23 @@ namespace Gamma_Manager
 
         #region Код, автоматически созданный конструктором форм Windows
 
-        /// <summary>
-        /// Требуемый метод для поддержки конструктора — не изменяйте 
-        /// содержимое этого метода с помощью редактора кода.
-        /// </summary>
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Window));
 
 
-            //this.trackBarGamma = new System.Windows.Forms.TrackBar();
             this.trackBarGamma = new CustomTrackBar{};
             this.buttonRed = new System.Windows.Forms.Button();
             this.buttonGreen = new System.Windows.Forms.Button();
             this.buttonBlue = new System.Windows.Forms.Button();
             this.buttonAllColors = new System.Windows.Forms.Button();
-            this.comboBoxPresets = new System.Windows.Forms.ComboBox();
+
+            this.comboBoxPresets = new Krypton.Toolkit.KryptonComboBox();
+            this.comboBoxMonitors = new Krypton.Toolkit.KryptonComboBox();
+
             this.buttonReset = new System.Windows.Forms.Button();
             this.buttonSave = new System.Windows.Forms.Button();
-            this.comboBoxMonitors = new System.Windows.Forms.ComboBox();
             this.trackBarContrast = new CustomTrackBar { };
             this.trackBarBrightness = new CustomTrackBar { };
             this.textBoxGamma = new System.Windows.Forms.TextBox();
@@ -236,6 +226,7 @@ namespace Gamma_Manager
             // comboBoxMonitors
             //
             this.comboBoxMonitors.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxMonitors.PaletteMode = Krypton.Toolkit.PaletteMode.Office2010BlackDarkMode;
             this.comboBoxMonitors.FormattingEnabled = true;
             this.comboBoxMonitors.Location = new System.Drawing.Point(9, 188);
             this.comboBoxMonitors.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -257,6 +248,8 @@ namespace Gamma_Manager
             // 
             // comboBoxPresets
             // 
+            this.comboBoxPresets.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDown;
+            this.comboBoxPresets.PaletteMode = Krypton.Toolkit.PaletteMode.Office2010BlackDarkMode;
             this.comboBoxPresets.FormattingEnabled = true;
             this.comboBoxPresets.Location = new System.Drawing.Point(266, 188);
             this.comboBoxPresets.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -488,10 +481,12 @@ namespace Gamma_Manager
         private System.Windows.Forms.Button buttonGreen;
         private System.Windows.Forms.Button buttonBlue;
         private System.Windows.Forms.Button buttonAllColors;
-        private System.Windows.Forms.ComboBox comboBoxPresets;
+
+        private Krypton.Toolkit.KryptonComboBox comboBoxPresets;
+        private Krypton.Toolkit.KryptonComboBox comboBoxMonitors;
+
         private System.Windows.Forms.Button buttonReset;
         private System.Windows.Forms.Button buttonSave;
-        private System.Windows.Forms.ComboBox comboBoxMonitors;
         private System.Windows.Forms.TextBox textBoxGamma;
         private System.Windows.Forms.TextBox textBoxContrast;
         private System.Windows.Forms.TextBox textBoxBrightness;
