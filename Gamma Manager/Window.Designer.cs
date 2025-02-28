@@ -456,8 +456,12 @@ namespace Gamma_Manager
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "Gamma Manager";
             this.TopMost = true;
+
             this.Load += new System.EventHandler(this.Window_Load);
             this.Resize += new System.EventHandler(this.Window_Resize);
+            this.Activated += new System.EventHandler(this.Window_Activated);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Window_FormClosing);
+
             ((System.ComponentModel.ISupportInitialize)(this.trackBarGamma)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarContrast)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarBrightness)).EndInit();

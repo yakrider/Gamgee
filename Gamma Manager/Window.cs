@@ -604,26 +604,39 @@ namespace Gamma_Manager
         //tray
         private void Window_Resize(object sender, EventArgs e)
         {
-            if (WindowState == FormWindowState.Minimized)
-            {
-                Hide();
+            if (WindowState == FormWindowState.Minimized) {  
+                //Hide(); 
+            } else {
+                TopMost = true;
             }
+        }
+        private void Window_Activated(object sender, EventArgs e)
+        {
+            TopMost = true;
+        }
+        private void Window_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            e.Cancel = true;
+            Hide();
         }
 
         private void notifyIcon_DoubleClick(object sender, EventArgs e)
         {
             Show();
-            WindowState = FormWindowState.Normal;
+            TopMost = true;
+            WindowState = FormWindowState.Normal;            
         }
 
         private void toolSettings_Click(object sender, EventArgs e)
         {
             Show();
+            TopMost = true;
             WindowState = FormWindowState.Normal;
         }
 
         private void toolExit_Click(object sender, EventArgs e)
         {
+            this.FormClosing -= Window_FormClosing;
             Close();
         }
 
