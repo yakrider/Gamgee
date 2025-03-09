@@ -177,6 +177,12 @@ namespace Gamma_Manager
             currDisplay = displays[numDisplay];
             comboBoxMonitors.SelectedIndex = numDisplay;
 
+            // at first start, we'll attempt to read gamma-ramp and approx to track-bar values
+            var rampInv = Gamma.InverseGammaRamp (Gamma.GetGammaRamp(currDisplay.displayLink));
+            currDisplay.rGamma    = (float) rampInv[0]; currDisplay.gGamma    = (float) rampInv[0]; currDisplay.bGamma    = (float) rampInv[0];
+            currDisplay.rContrast = (float) rampInv[1]; currDisplay.gContrast = (float) rampInv[1]; currDisplay.bContrast = (float) rampInv[1];
+            currDisplay.rBright   = (float) rampInv[2]; currDisplay.gBright   = (float) rampInv[2]; currDisplay.bBright   = (float) rampInv[2];
+
             fillInfo(currDisplay);
 
             initPresets();

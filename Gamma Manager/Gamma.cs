@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using MathNet.Numerics.Optimization;
 
 namespace Gamma_Manager
 {
@@ -73,21 +74,108 @@ namespace Gamma_Manager
         [DllImport("gdi32.dll")]
         private static extern bool GetDeviceGammaRamp(IntPtr hdc, ushort[,] lpRamp);
 
-        /*public static void CheckGammaRamp(string display_dc, ushort[,] newGammaArray)
-        {
-            ushort[,] oldGamma = new ushort[3, 256];
-            IntPtr hDC = CreateDC(null, display_dc, null, IntPtr.Zero);
-            GetDeviceGammaRamp(hDC, oldGamma);
 
-            SetDeviceGammaRamp(hDC, newGammaArray);
-            Thread.Sleep(3000);
-            SetDeviceGammaRamp(hDC, oldGamma);
-        }*/
 
         public static void SetGammaRamp(string display_dc, ushort[,] newGammaArray)
         {
             IntPtr hDC = CreateDC(null, display_dc, null, IntPtr.Zero);
             SetDeviceGammaRamp(hDC, newGammaArray);
         }
+
+        public static ushort[,] GetGammaRamp(string display_dc)
+        {
+            ushort[,] curGamma = new ushort[3, 256];
+            IntPtr hDC = CreateDC(null, display_dc, null, IntPtr.Zero);
+            GetDeviceGammaRamp(hDC, curGamma);
+            return curGamma;
+        }
+
+
+
+        public static double[] InverseGammaRamp (ushort[,] obtainedGammaRamp)
+        {
+            //var roughGuess = new [] {1.0, 1.0, 0.0};
+            var roughGuess = InverseGammaRamp_Grid(obtainedGammaRamp);
+            var tunedGuess = InverseGammaRamp_NelderMead(obtainedGammaRamp, roughGuess);
+            return tunedGuess;
+        }
+
+
+        private static double[] InverseGammaRamp_NelderMead (ushort[,] obtainedGammaRamp, double[] initialGuess)
+        {
+            Func<MathNet.Numerics.LinearAlgebra.Vector<double>, double> lossFunction = parameters => {
+                var calculatedRamp = CreateGammaRamp (
+                    (float)parameters[0], (float)parameters[0], (float)parameters[1],
+                    (float)parameters[1], (float)parameters[1], (float)parameters[1],
+                    (float)parameters[2], (float)parameters[2], (float)parameters[2]
+                );
+                double loss = 0.0;
+                for (int i = 0; i < 256; i++)
+                {
+                    loss += Math.Pow(calculatedRamp[0, i] - obtainedGammaRamp[0, i], 2);
+                    loss += Math.Pow(calculatedRamp[1, i] - obtainedGammaRamp[1, i], 2);
+                    loss += Math.Pow(calculatedRamp[2, i] - obtainedGammaRamp[2, i], 2);
+                }
+                return loss;
+            };
+            // Use an NelderMeadSimplex optimization algorithm to minimize the loss function
+            // (all the others require gradient, which we dont have in this wildly non-linear gamma ramp gen)
+            var optimizer = new NelderMeadSimplex(0.005, 1000);
+            var _initialGuess = MathNet.Numerics.LinearAlgebra.Vector<double>.Build.Dense (initialGuess);
+            var result = optimizer.FindMinimum(ObjectiveFunction.Value(lossFunction), _initialGuess);
+            return result.MinimizingPoint.ToArray();
+        }
+
+
+        private static double[] InverseGammaRamp_Grid (ushort[,] obtainedGammaRamp)
+        {
+            // Define the parameter ranges for the grid search
+            var gammaRange = GenerateRange(0.4, 3.0, 0.075);
+            var contrastRange = GenerateRange(0.4, 2.0, 0.075);
+            var brightnessRange = GenerateRange(-1.0, 1.0, 0.075);
+
+            var minLoss = double.MaxValue;
+            var bestParams = new double[3];
+
+            foreach (var gamma in gammaRange)
+            {
+                foreach (var contrast in contrastRange)
+                {
+                    foreach (var brightness in brightnessRange)
+                    {
+                        var calculatedRamp = CreateGammaRamp (
+                            (float)gamma, (float)gamma, (float)gamma,
+                            (float)contrast, (float)contrast, (float)contrast,
+                            (float)brightness, (float)brightness, (float)brightness
+                        );
+                        double loss = 0.0;
+                        for (int i = 0; i < 256; i++)
+                        {
+                            loss += Math.Pow(calculatedRamp[0, i] - obtainedGammaRamp[0, i], 2);
+                            loss += Math.Pow(calculatedRamp[1, i] - obtainedGammaRamp[1, i], 2);
+                            loss += Math.Pow(calculatedRamp[2, i] - obtainedGammaRamp[2, i], 2);
+                        }
+                        if (loss < minLoss)
+                        {
+                            minLoss = loss;
+                            bestParams = new [] { gamma, contrast, brightness };
+                        }
+                    }
+                }
+            }
+            return bestParams;
+        }
+
+        private static double[] GenerateRange (double start, double end, double step)
+        {
+            var count = (int)((end - start) / step) + 1;
+            var range = new double[count];
+            for (var i = 0; i < count; i++)
+            {
+                range[i] = start + i * step;
+            }
+            return range;
+        }
+
     }
 }
