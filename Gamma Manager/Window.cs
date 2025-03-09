@@ -125,11 +125,11 @@ namespace Gamma_Manager
                 trackBarMonitorContrast.Visible = true;
                 textBoxMonitorContrast.Visible = true;
 
-                textBoxMonitorBrightness.Text = ExternalMonitor.GetBrightness(currDisplay.PhysicalHandle).ToString();
                 trackBarMonitorBrightness.Value = ExternalMonitor.GetBrightness(currDisplay.PhysicalHandle);
+                textBoxMonitorBrightness.Text  = trackBarMonitorBrightness.Value.ToString();
 
-                textBoxMonitorContrast.Text = ExternalMonitor.GetContrast(currDisplay.PhysicalHandle).ToString();
                 trackBarMonitorContrast.Value = ExternalMonitor.GetContrast(currDisplay.PhysicalHandle);
+                textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
             }
             else
             {
@@ -138,8 +138,8 @@ namespace Gamma_Manager
                 trackBarMonitorContrast.Visible = false;
                 textBoxMonitorContrast.Visible = false;
 
-                textBoxMonitorBrightness.Text = InternalMonitor.GetBrightness().ToString();
                 trackBarMonitorBrightness.Value = InternalMonitor.GetBrightness();
+                textBoxMonitorBrightness.Text = trackBarMonitorBrightness.Value.ToString();
             }
             disableChangeFunc = false;
         }
@@ -572,15 +572,19 @@ namespace Gamma_Manager
             if (!disableChangeFunc)
             {
                 string test = comboBoxPresets.Text;
+
                 currDisplay.rGamma = float.Parse(iniFile.Read("rGamma", comboBoxPresets.Text), customCulture);
                 currDisplay.gGamma = float.Parse(iniFile.Read("gGamma", comboBoxPresets.Text), customCulture);
                 currDisplay.bGamma = float.Parse(iniFile.Read("bGamma", comboBoxPresets.Text), customCulture);
+
                 currDisplay.rContrast = float.Parse(iniFile.Read("rContrast", comboBoxPresets.Text), customCulture);
                 currDisplay.gContrast = float.Parse(iniFile.Read("gContrast", comboBoxPresets.Text), customCulture);
                 currDisplay.bContrast = float.Parse(iniFile.Read("bContrast", comboBoxPresets.Text), customCulture);
+
                 currDisplay.rBright = float.Parse(iniFile.Read("rBright", comboBoxPresets.Text), customCulture);
                 currDisplay.gBright = float.Parse(iniFile.Read("gBright", comboBoxPresets.Text), customCulture);
                 currDisplay.bBright = float.Parse(iniFile.Read("bBright", comboBoxPresets.Text), customCulture);
+
                 //currDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", comboBoxPresets.Text));
                 //currDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", comboBoxPresets.Text));
                 // ^^ we'll keep monitor brighness separate from gamma etc configs for now
@@ -590,20 +594,26 @@ namespace Gamma_Manager
                 buttonAllColors.PerformClick();
                 initTrayMenu();
 
-                Gamma.SetGammaRamp(currDisplay.displayLink,
-                    Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma,
-                    currDisplay.rContrast, currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright,
-                    currDisplay.bBright));
+                // first lets set the gamma-ramp
+                Gamma.SetGammaRamp (currDisplay.displayLink,
+                    Gamma.CreateGammaRamp (
+                        currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma,
+                        currDisplay.rContrast, currDisplay.gContrast, currDisplay.bContrast,
+                        currDisplay.rBright, currDisplay.gBright, currDisplay.bBright
+                    )
+                );
 
-                if (currDisplay.isExternal)
-                {
-                    trackBarMonitorBrightness.Value = currDisplay.monitorBrightness;
-                    trackBarMonitorContrast.Value = currDisplay.monitorContrast;
-                }
-                else
-                {
-                    trackBarMonitorBrightness.Value = currDisplay.monitorBrightness;
-                }
+                // next set the monitor brightness too
+                // .. but meh .. we're gonna disable this .. cleaner to avoid messing up monitor brightness just from picking gamma presets
+                //if (currDisplay.isExternal)
+                //{
+                //    trackBarMonitorBrightness.Value = currDisplay.monitorBrightness;
+                //    trackBarMonitorContrast.Value = currDisplay.monitorContrast;
+                //}
+                //else
+                //{
+                //    trackBarMonitorBrightness.Value = currDisplay.monitorBrightness;
+                //}
             }
         }
 
