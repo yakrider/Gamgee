@@ -32,6 +32,7 @@ namespace Gamma_Manager
         private static readonly Color ButtonTextColor = Color.White;
         private static readonly Color TrackBackColor = Color.FromArgb(30,30,30);
         private static readonly Color TrackForeColor = Color.Aqua;
+        private static readonly Color BorderColor = Color.BurlyWood;
 
         private void clearColors()
         {
@@ -151,13 +152,13 @@ namespace Gamma_Manager
         public Window()
         {
             InitializeComponent();
-            EnableDarkMode(); // Enable dark mode
-            ApplyDarkMode(this); // Apply dark mode colors
 
-            ShowInTaskbar = false;
-            FormBorderStyle = FormBorderStyle.None;
-            // ^^ removes titlebar .. also makes minimize/restore from taskbar icon no longer work ..
-            // .. which is fine by us as we're disabling showing it in taskbar anyway
+            ApplyDarkMode(this);
+            // ^^ we'll ourselves apply dark colors to the winforms default components we use
+
+            EnableDarkMode(); // Enable dark mode
+            // ^^ this is system wide dark-mode to mostly helps with titlebar etc
+            // (but we no longer show titlebar at all, so not that important anymore)
 
             customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
             customCulture.NumberFormat.NumberDecimalSeparator = ",";
@@ -624,6 +625,22 @@ namespace Gamma_Manager
             e.Cancel = true;
             Hide();
         }
+        private void Window_Paint(object sender, PaintEventArgs e)
+        {
+            // Draw border in the inside edge of our content panel (with its content prior anchored to accomodate 1px border)
+            using (Pen borderPen = new Pen(BorderColor, 1))
+            {
+                e.Graphics.DrawRectangle (borderPen, 0, 0, this.ClientSize.Width - 1, this.ClientSize.Height - 1);
+            }
+        }
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Escape)
+            {
+                Hide();
+            }
+        }
+
         private void notifyIcon_Click(object sender, MouseEventArgs e)
         {
             Show();
@@ -646,13 +663,6 @@ namespace Gamma_Manager
         {
             FormClosing -= Window_FormClosing;
             Close();
-        }
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Escape)
-            {
-                Hide();
-            }
         }
 
         private void comboBoxToolMonitor_IndexChanged(object sender, EventArgs e)

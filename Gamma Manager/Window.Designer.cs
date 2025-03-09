@@ -23,6 +23,7 @@ namespace Gamma_Manager
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Window));
 
+            this.contentPanel = new Panel();
             this.trackBarGamma = new CustomTrackBar{};
             this.buttonRed = new System.Windows.Forms.Button();
             this.buttonGreen = new System.Windows.Forms.Button();
@@ -65,6 +66,7 @@ namespace Gamma_Manager
             ((System.ComponentModel.ISupportInitialize)(this.trackBarMonitorBrightness)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarMonitorContrast)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+
             this.SuspendLayout();
 
             //
@@ -180,10 +182,9 @@ namespace Gamma_Manager
             //
             // buttonAllColors
             //
-            this.buttonAllColors.Location = new System.Drawing.Point(592, 2);
-            this.buttonAllColors.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.buttonAllColors.Location = new System.Drawing.Point(592, 4);
             this.buttonAllColors.Name = "buttonAllColors";
-            this.buttonAllColors.Size = new System.Drawing.Size(104, 124);
+            this.buttonAllColors.Size = new System.Drawing.Size(104, 118);
             this.buttonAllColors.TabIndex = 4;
             this.buttonAllColors.Text = "All Colors";
             this.buttonAllColors.UseVisualStyleBackColor = true;
@@ -191,8 +192,7 @@ namespace Gamma_Manager
             // 
             // buttonRed
             // 
-            this.buttonRed.Location = new System.Drawing.Point(694, 2);
-            this.buttonRed.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.buttonRed.Location = new System.Drawing.Point(694, 4);
             this.buttonRed.Name = "buttonRed";
             this.buttonRed.Size = new System.Drawing.Size(104, 40);
             this.buttonRed.TabIndex = 1;
@@ -203,7 +203,6 @@ namespace Gamma_Manager
             // buttonGreen
             // 
             this.buttonGreen.Location = new System.Drawing.Point(694, 42);
-            this.buttonGreen.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
             this.buttonGreen.Name = "buttonGreen";
             this.buttonGreen.Size = new System.Drawing.Size(104, 40);
             this.buttonGreen.TabIndex = 2;
@@ -213,8 +212,7 @@ namespace Gamma_Manager
             // 
             // buttonBlue
             // 
-            this.buttonBlue.Location = new System.Drawing.Point(694, 84);
-            this.buttonBlue.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.buttonBlue.Location = new System.Drawing.Point(694, 80);
             this.buttonBlue.Name = "buttonBlue";
             this.buttonBlue.Size = new System.Drawing.Size(104, 40);
             this.buttonBlue.TabIndex = 3;
@@ -413,71 +411,91 @@ namespace Gamma_Manager
             this.pictureBox1.ErrorImage = null;
             this.pictureBox1.InitialImage = null;
             this.pictureBox1.Location = new System.Drawing.Point(810, 2);
-            this.pictureBox1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.pictureBox1.Margin = new System.Windows.Forms.Padding(4);
+            this.pictureBox1.Size = new System.Drawing.Size(380, 330);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(384, 326);
             this.pictureBox1.TabIndex = 28;
             this.pictureBox1.TabStop = false;
             this.pictureBox1.MouseClick += new MouseEventHandler(this.pictureBox_Click);
+
             // 
             // contextMenu
             // 
             this.contextMenu.ImageScalingSize = new System.Drawing.Size(20, 20);
             this.contextMenu.Name = "contextMenu";
             this.contextMenu.Size = new System.Drawing.Size(61, 4);
-            // 
-            // Window
-            // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.SystemColors.Control;
-            this.ClientSize = new System.Drawing.Size(1193, 336);
-            this.Controls.Add(this.buttonBlue);
-            this.Controls.Add(this.checkBoxExContrast);
-            this.Controls.Add(this.buttonForward);
-            this.Controls.Add(this.pictureBox1);
-            this.Controls.Add(this.textBoxMonitorContrast);
-            this.Controls.Add(this.trackBarMonitorContrast);
-            this.Controls.Add(this.labelMonitorContrastDown);
-            this.Controls.Add(this.labelMonitorContrastUp);
-            this.Controls.Add(this.buttonHide);
-            this.Controls.Add(this.buttonExit);
-            this.Controls.Add(this.labelMonitorBrightnessDown);
-            this.Controls.Add(this.comboBoxMonitors);
-            this.Controls.Add(this.buttonDelete);
-            this.Controls.Add(this.buttonSave);
-            this.Controls.Add(this.comboBoxPresets);
-            this.Controls.Add(this.labelMonitorBrightnessUp);
-            this.Controls.Add(this.textBoxMonitorBrightness);
-            this.Controls.Add(this.trackBarMonitorBrightness);
-            this.Controls.Add(this.labelBrightness);
-            this.Controls.Add(this.labelContrast);
-            this.Controls.Add(this.labelGamma);
-            this.Controls.Add(this.textBoxBrightness);
-            this.Controls.Add(this.textBoxContrast);
-            this.Controls.Add(this.textBoxGamma);
-            this.Controls.Add(this.trackBarContrast);
-            this.Controls.Add(this.buttonReset);
-            this.Controls.Add(this.buttonAllColors);
-            this.Controls.Add(this.buttonGreen);
-            this.Controls.Add(this.buttonRed);
-            this.Controls.Add(this.trackBarBrightness);
-            this.Controls.Add(this.trackBarGamma);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.MaximizeBox = false;
-            this.Name = "Window";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
-            this.Text = "Gamma Manager";
-            this.TopMost = true;
 
+            //
+            // Content Panel ..
+            //
+            // Apparently not straight-forward to customize full form's border itself..
+            // so instead, we'll put all content in a panel, then paint a border on the panel inside-edge ourselves
+            //
+            this.ClientSize = new System.Drawing.Size(1196, 338);
+            // ^^ but since we anchor to dimensions, we'll set the full window dims first
+            //
+            contentPanel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            contentPanel.Location = new Point(2, 2);
+            contentPanel.Size = new Size(this.ClientSize.Width - 4, this.ClientSize.Height - 4);
+            contentPanel.BackColor = BackgroundColor;
+            // now we'll add all the contents to the panel
+            contentPanel.Controls.Add(this.buttonBlue);
+            contentPanel.Controls.Add(this.checkBoxExContrast);
+            contentPanel.Controls.Add(this.buttonForward);
+            contentPanel.Controls.Add(this.pictureBox1);
+            contentPanel.Controls.Add(this.textBoxMonitorContrast);
+            contentPanel.Controls.Add(this.trackBarMonitorContrast);
+            contentPanel.Controls.Add(this.labelMonitorContrastDown);
+            contentPanel.Controls.Add(this.labelMonitorContrastUp);
+            contentPanel.Controls.Add(this.buttonHide);
+            contentPanel.Controls.Add(this.buttonExit);
+            contentPanel.Controls.Add(this.labelMonitorBrightnessDown);
+            contentPanel.Controls.Add(this.comboBoxMonitors);
+            contentPanel.Controls.Add(this.buttonDelete);
+            contentPanel.Controls.Add(this.buttonSave);
+            contentPanel.Controls.Add(this.comboBoxPresets);
+            contentPanel.Controls.Add(this.labelMonitorBrightnessUp);
+            contentPanel.Controls.Add(this.textBoxMonitorBrightness);
+            contentPanel.Controls.Add(this.trackBarMonitorBrightness);
+            contentPanel.Controls.Add(this.labelBrightness);
+            contentPanel.Controls.Add(this.labelContrast);
+            contentPanel.Controls.Add(this.labelGamma);
+            contentPanel.Controls.Add(this.textBoxBrightness);
+            contentPanel.Controls.Add(this.textBoxContrast);
+            contentPanel.Controls.Add(this.textBoxGamma);
+            contentPanel.Controls.Add(this.trackBarContrast);
+            contentPanel.Controls.Add(this.buttonReset);
+            contentPanel.Controls.Add(this.buttonAllColors);
+            contentPanel.Controls.Add(this.buttonGreen);
+            contentPanel.Controls.Add(this.buttonRed);
+            contentPanel.Controls.Add(this.trackBarBrightness);
+            contentPanel.Controls.Add(this.trackBarGamma);
+            // then add that to form
+            this.Controls.Add(contentPanel);
+
+            //
+            // Window
+            //
+            this.Name = "Window";
+            this.Text = "Gamma Manager";
+            this.BackColor = BackgroundColor;
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
+            this.TopMost = true;
+            this.ShowInTaskbar = false;
+            this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            // ^^ setting border-style None removes titlebar .. but also makes minimize/restore from taskbar icon no longer work
+            // .. which is fine by us as we're disabling showing it in taskbar anyway
+            //
             this.KeyPreview = true;
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Window_KeyDown);
-
             this.Load += new System.EventHandler(this.Window_Load);
             this.Resize += new System.EventHandler(this.Window_Resize);
             this.Activated += new System.EventHandler(this.Window_Activated);
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Window_FormClosing);
+            this.Paint += new PaintEventHandler(this.Window_Paint);
+            // ^^ we use the Paint handler to draw a custom border ourselves on the content-panel inside-edge
 
             ((System.ComponentModel.ISupportInitialize)(this.trackBarGamma)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarContrast)).EndInit();
@@ -485,12 +503,15 @@ namespace Gamma_Manager
             ((System.ComponentModel.ISupportInitialize)(this.trackBarMonitorBrightness)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBarMonitorContrast)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+
             this.ResumeLayout(false);
             this.PerformLayout();
-
         }
 
+
         #endregion
+
+        private System.Windows.Forms.Panel contentPanel;
 
         private System.Windows.Forms.Label labelGamma;
         private System.Windows.Forms.Label labelBrightness;
