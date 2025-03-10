@@ -2,69 +2,60 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-namespace Gamma_Manager
+namespace Gamma_Manager;
+
+internal class Display
 {
-    internal class Display
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public struct PHYSICAL_MONITOR
     {
-        #region Classes
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        public struct PHYSICAL_MONITOR
-        {
-            public IntPtr hPhysicalMonitor;
+        public IntPtr hPhysicalMonitor;
 
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
-            public string szPhysicalMonitorDescription;
-        }
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string szPhysicalMonitorDescription;
+    }
 
-        public class DisplayInfo
-        {
-            public int numDisplay;
-            public string displayName;
-            public string displayLink;
-            public bool isExternal;
-            public IntPtr PhysicalHandle;
-            public float rGamma = 1.0f;
-            public float gGamma = 1.0f;
-            public float bGamma = 1.0f; 
-            public float rContrast = 1.0f; 
-            public float gContrast = 1.0f; 
-            public float bContrast = 1.0f;
-            public float rBright = 0.0f;
-            public float gBright = 0.0f;
-            public float bBright = 0.0f;
-            public int monitorBrightness;
-            public int monitorContrast;
-        }
-        #endregion
+    public class DisplayInfo
+    {
+        public int numDisplay;
+        public string displayName;
+        public string displayLink;
+        public bool isExternal;
+        public IntPtr PhysicalHandle;
+        //public WinApi.RECT rect;
 
-        #region DllImport
-        [DllImport("dxva2.dll", EntryPoint = "GetNumberOfPhysicalMonitorsFromHMONITOR")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, ref uint pdwNumberOfPhysicalMonitors);
+        public RampGbc ramp_gbc = RampGbc.GetDefaultRampGbc();
 
-        [DllImport("dxva2.dll", EntryPoint = "GetPhysicalMonitorsFromHMONITOR")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool GetPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, uint dwPhysicalMonitorArraySize, [Out] PHYSICAL_MONITOR[] pPhysicalMonitorArray);
+        public int monitorBrightness;
+        public int monitorContrast;
+    }
 
-        [DllImport("dxva2.dll", EntryPoint = "GetMonitorBrightness")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool GetMonitorBrightness(IntPtr handle, ref uint minimumBrightness, ref uint currentBrightness, ref uint maxBrightness);
+    [DllImport("dxva2.dll", EntryPoint = "GetNumberOfPhysicalMonitorsFromHMONITOR")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, ref uint pdwNumberOfPhysicalMonitors);
 
-        [DllImport("dxva2.dll", EntryPoint = "DestroyPhysicalMonitor")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool DestroyPhysicalMonitor(IntPtr hMonitor);
+    [DllImport("dxva2.dll", EntryPoint = "GetPhysicalMonitorsFromHMONITOR")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, uint dwPhysicalMonitorArraySize, [Out] PHYSICAL_MONITOR[] pPhysicalMonitorArray);
 
-        [DllImport("dxva2.dll", EntryPoint = "DestroyPhysicalMonitors")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool DestroyPhysicalMonitors(uint dwPhysicalMonitorArraySize, [In] PHYSICAL_MONITOR[] pPhysicalMonitorArray);
+    [DllImport("dxva2.dll", EntryPoint = "GetMonitorBrightness")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorBrightness(IntPtr handle, ref uint minimumBrightness, ref uint currentBrightness, ref uint maxBrightness);
 
-        #endregion
+    [DllImport("dxva2.dll", EntryPoint = "DestroyPhysicalMonitor")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DestroyPhysicalMonitor(IntPtr hMonitor);
 
-        public static List<DisplayInfo> QueryDisplayDevices()
-        {
-            List<DisplayInfo> monitors = new List<DisplayInfo>();
+    [DllImport("dxva2.dll", EntryPoint = "DestroyPhysicalMonitors")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool DestroyPhysicalMonitors(uint dwPhysicalMonitorArraySize, [In] PHYSICAL_MONITOR[] pPhysicalMonitorArray);
 
-            WinApi.MonitorEnumDelegate MonitorEnumProc = new WinApi.MonitorEnumDelegate(
+
+    public static List<DisplayInfo> QueryDisplayDevices()
+    {
+        List<DisplayInfo> monitors = new List<DisplayInfo>();
+
+        WinApi.MonitorEnumDelegate MonitorEnumProc = new WinApi.MonitorEnumDelegate(
             (IntPtr hMonitor, IntPtr hdcMonitor, ref WinApi.RECT lprcMonitor, IntPtr dwData) =>
             {
                 WinApi.MONITORINFOEX monitorInfo = new WinApi.MONITORINFOEX() { Size = Marshal.SizeOf(typeof(WinApi.MONITORINFOEX)) };
@@ -77,7 +68,6 @@ namespace Gamma_Manager
                     if (WinApi.EnumDisplayDevices(monitorInfo.DeviceName.ToLPTStr(), 0, ref device, 0))
                     {
                         monitor.displayLink = monitorInfo.DeviceName;
-
                     }
                     string DName = device.DeviceID;
                     DName = DName.Substring(DName.IndexOf("\\") + 1);
@@ -90,30 +80,22 @@ namespace Gamma_Manager
                     Console.WriteLine("Bottom: " + lprcMonitor.Bottom);*/
 
                 }
-                for (int i = 0; i < monitors.Count; i++)
-                {
-
-                }
 
                 uint physicalMonitorsCount = 0;
 
-                if (!GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, ref physicalMonitorsCount))
-                {
-                    // Cannot get monitor count
-                    return true;
+                if (!GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, ref physicalMonitorsCount)) {
+                    return true; // Cannot get monitor count
                 }
 
                 var physicalMonitors = new PHYSICAL_MONITOR[physicalMonitorsCount];
-                if (!GetPhysicalMonitorsFromHMONITOR(hMonitor, physicalMonitorsCount, physicalMonitors))
-                {
-                    // Cannot get physical monitor handle
-                    return true;
+                if (!GetPhysicalMonitorsFromHMONITOR(hMonitor, physicalMonitorsCount, physicalMonitors)) {
+                    return true; // Cannot get physical monitor handle
                 }
 
                 foreach (PHYSICAL_MONITOR physicalMonitor in physicalMonitors)
                 {
-
                     uint minValue = 0, currentValue = 0, maxValue = 0;
+                    monitor.isExternal = true;
                     if (!GetMonitorBrightness(physicalMonitor.hPhysicalMonitor, ref minValue, ref currentValue, ref maxValue))
                     {
                         monitor.isExternal = false;
@@ -121,21 +103,12 @@ namespace Gamma_Manager
                         DestroyPhysicalMonitor(physicalMonitor.hPhysicalMonitor);
                         continue;
                     }
-                    else
-                    {
-                        monitor.isExternal = true;
-                    }
-
                     monitor.PhysicalHandle = physicalMonitor.hPhysicalMonitor;
-
                 }
-                if (monitor.isExternal)
-                {
+                if (monitor.isExternal) {
                     monitor.monitorBrightness = ExternalMonitor.GetBrightness(monitor.PhysicalHandle);
                     monitor.monitorContrast = ExternalMonitor.GetContrast(monitor.PhysicalHandle);
-                }
-                else
-                {
+                } else {
                     monitor.monitorBrightness = InternalMonitor.GetBrightness();
                     monitor.monitorContrast = -1;
                 }
@@ -143,18 +116,17 @@ namespace Gamma_Manager
                 return true;
             });
 
-            WinApi.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, MonitorEnumProc, IntPtr.Zero);
-            return monitors;
-        }
-
-        /*public static void DisposeMonitors(IEnumerable<DisplayInfo> monitors)
-        {
-            if (monitors?.Any() == true)
-            {
-                PHYSICAL_MONITOR[] monitorArray = monitors.Select(m => new PHYSICAL_MONITOR { hPhysicalMonitor = m.PhysicalHandle }).ToArray();
-                DestroyPhysicalMonitors((uint)monitorArray.Length, monitorArray);
-            }
-        }*/
-
+        WinApi.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, MonitorEnumProc, IntPtr.Zero);
+        return monitors;
     }
+
+    /*public static void DisposeMonitors(IEnumerable<DisplayInfo> monitors)
+    {
+        if (monitors?.Any() == true)
+        {
+            PHYSICAL_MONITOR[] monitorArray = monitors.Select(m => new PHYSICAL_MONITOR { hPhysicalMonitor = m.PhysicalHandle }).ToArray();
+            DestroyPhysicalMonitors((uint)monitorArray.Length, monitorArray);
+        }
+    }*/
+
 }

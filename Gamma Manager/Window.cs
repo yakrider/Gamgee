@@ -4,916 +4,747 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace Gamma_Manager
+namespace Gamma_Manager;
+
+public partial class Window : Form
 {
-    public partial class Window : Form
+    System.Globalization.CultureInfo customCulture;
+    IniFile iniFile;
+
+    List<Display.DisplayInfo> displays = new List<Display.DisplayInfo>();
+    int numDisplay = 0;
+    Display.DisplayInfo curDisplay;
+
+    List<ToolStripComboBox> toolMonitors = new List<ToolStripComboBox>();
+    ToolStripComboBox toolMonitor;
+
+    public enum GammaSrcColor
     {
-        System.Globalization.CultureInfo customCulture;
-        IniFile iniFile;
+        Combined = 0,
+        Red,
+        Green,
+        Blue
+    }
+    public enum GBC
+    {
+        Gamma = 0,
+        Bright,
+        Contrast
+    }
 
-        List<Display.DisplayInfo> displays = new List<Display.DisplayInfo>();
-        int numDisplay = 0;
-        Display.DisplayInfo currDisplay;
+    bool disableChangeFunc = false;
+    private GammaSrcColor gammaSrc = GammaSrcColor.Combined;
 
-        List<ToolStripComboBox> toolMonitors = new List<ToolStripComboBox>();
-        ToolStripComboBox toolMonitor;
 
-        bool disableChangeFunc = false;
+    private static readonly Color BackgroundColor = Color.FromArgb(30,30,30);
+    private static readonly Color ForegroundColor = Color.White;
+    private static readonly Color ButtonColor = Color.FromArgb(60,60,60);
+    private static readonly Color ButtonBorderColor = Color.FromArgb(120, 120, 120);
+    private static readonly Color ButtonTextColor = Color.White;
+    private static readonly Color BorderColor = Color.BurlyWood;
 
-        bool allColors = true;
-        bool redColor = false;
-        bool greenColor = false;
-        bool blueColor = false;
-
-        private static readonly Color BackgroundColor = Color.FromArgb(30,30,30);
-        private static readonly Color ForegroundColor = Color.White;
-        private static readonly Color ButtonColor = Color.FromArgb(60,60,60);
-        private static readonly Color ButtonBorderColor = Color.FromArgb(100,100,100);
-        private static readonly Color ButtonTextColor = Color.White;
-        private static readonly Color TrackBackColor = Color.FromArgb(30,30,30);
-        private static readonly Color TrackForeColor = Color.Aqua;
-        private static readonly Color BorderColor = Color.BurlyWood;
-
-        private void clearColors()
+    private void initPresets()
+    {
+        comboBoxPresets.Items.Clear();
+        comboBoxPresets.Text = string.Empty;
+        foreach (var preset in iniFile.GetSections())
         {
-            buttonAllColors.Font = new Font(buttonAllColors.Font.Name, buttonAllColors.Font.Size, FontStyle.Regular);
-            buttonRed.Font = new Font(buttonRed.Font.Name, buttonRed.Font.Size, FontStyle.Regular);
-            buttonGreen.Font = new Font(buttonGreen.Font.Name, buttonGreen.Font.Size, FontStyle.Regular);
-            buttonBlue.Font = new Font(buttonBlue.Font.Name, buttonBlue.Font.Size, FontStyle.Regular);
-
-            allColors = false;
-            redColor = false;
-            greenColor = false;
-            blueColor = false;
-        }
-
-        private void initPresets()
-        {
-            comboBoxPresets.Items.Clear();
-            comboBoxPresets.Text = string.Empty;
-            string[] presets = iniFile.GetSections();
-            if (presets != null)
+            if (iniFile.Read("monitor", preset).Equals(curDisplay.displayName))
             {
-                for (int i = 0; i < presets.Length; i++)
+                comboBoxPresets.Items.Add(preset);
+            }
+        }
+    }
+
+    private void initTrayMenu()
+    {
+        contextMenu.Items.Clear();
+        toolMonitors.Clear();
+
+        var toolSetting = new ToolStripMenuItem("Settings", null, toolSettings_Click);
+        contextMenu.Items.Add(toolSetting);
+
+        var toolStripSeparator1 = new ToolStripSeparator();
+        contextMenu.Items.Add(toolStripSeparator1);
+
+        foreach (var display in displays)
+        {
+            toolMonitor = new ToolStripComboBox(display.displayName);
+            toolMonitor.DropDownStyle = ComboBoxStyle.DropDownList;
+
+            toolMonitor.Items.Add(display.displayName + ":");
+            toolMonitor.Text = display.displayName + ":";
+
+            toolMonitor.SelectedIndexChanged += comboBoxToolMonitor_IndexChanged;
+
+            foreach (var preset in iniFile.GetSections())
+            {
+                if (iniFile.Read("monitor", preset).Equals(display.displayName))
                 {
-                    if (iniFile.Read("monitor", presets[i]).Equals(currDisplay.displayName))
-                    {
-                        comboBoxPresets.Items.Add(presets[i]);
-                    }
+                    //preset.name = preset.Substring(preset.IndexOf(")") + 1);
+                    toolMonitor.Items.Add(preset);
                 }
+            }
+            toolMonitors.Add(toolMonitor);
+            contextMenu.Items.Add(toolMonitor);
+        }
+        var toolStripSeparator2 = new ToolStripSeparator();
+        contextMenu.Items.Add(toolStripSeparator2);
+        var toolExit = new ToolStripMenuItem("Exit", null, toolExit_Click);
+        contextMenu.Items.Add(toolExit);
+    }
+
+
+    private void RenderCurInfo()
+    {
+        //RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+        RenderCurInfo_Monitors();
+    }
+
+    private void RenderCurInfo_ColorBtns()
+    {
+        void setFontStyle(Button btn, GammaSrcColor boldSrc)
+        {
+            var style = gammaSrc == boldSrc ? FontStyle.Bold : FontStyle.Regular;
+            btn.Font = new Font(btn.Font.Name, btn.Font.Size, style);
+        }
+        setFontStyle (buttonRed, GammaSrcColor.Red);
+        setFontStyle (buttonGreen, GammaSrcColor.Green);
+        setFontStyle (buttonBlue, GammaSrcColor.Blue);
+        setFontStyle (buttonAllColors, GammaSrcColor.Combined);
+    }
+
+
+    private void RenderCurInfo_GBC()
+    {
+        disableChangeFunc = true;
+
+        var (gamma, bright, contrast) = (
+            curDisplay.ramp_gbc.Gamma.get(gammaSrc),
+            curDisplay.ramp_gbc.Bright.get(gammaSrc),
+            curDisplay.ramp_gbc.Contrast.get(gammaSrc)
+        );
+        trackBarGamma.Value = (int)(100f * gamma);
+        textBoxGamma.Text = gamma.ToString("0.00");
+
+        trackBarBright.Value = (int)(100f * bright);
+        textBoxBrightness.Text = bright.ToString("0.00");
+
+        trackBarContrast.Value = (int)(100f * contrast);
+        textBoxContrast.Text = contrast.ToString("0.00");
+
+        disableChangeFunc = false;
+    }
+
+    private void RenderCurInfo_Monitors()
+    {
+        disableChangeFunc = true;
+
+        labelMonitorContrastUp.Visible = labelMonitorContrastDown.Visible =
+            trackBarMonitorContrast.Visible = textBoxMonitorContrast.Visible = curDisplay.isExternal;
+
+        trackBarMonitorBright.Value = curDisplay.isExternal ?
+            ExternalMonitor.GetBrightness(curDisplay.PhysicalHandle) : InternalMonitor.GetBrightness();
+        textBoxMonitorBrightness.Text  = trackBarMonitorBright.Value.ToString();
+
+        if (curDisplay.isExternal) {
+            trackBarMonitorContrast.Value = ExternalMonitor.GetContrast(curDisplay.PhysicalHandle);
+            textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
+        }
+        disableChangeFunc = false;
+    }
+    private void Window_Load(object sender, EventArgs e)
+    {
+        var wa = Screen.PrimaryScreen.WorkingArea;
+        Location = new Point(wa.X + wa.Width - Width - 1, wa.Y + wa.Height - Height - 1);
+    }
+
+    public Window()
+    {
+        InitializeComponent();
+
+        ApplyDarkMode(this);
+        // ^^ we'll ourselves apply dark colors to the winforms default components we use
+
+        EnableDarkMode(); // Enable dark mode
+        // ^^ this is system wide dark-mode to mostly helps with titlebar etc
+        // (but we no longer show titlebar at all, so not that important anymore)
+
+        customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
+        customCulture.NumberFormat.NumberDecimalSeparator = ",";
+
+        iniFile = new IniFile("GammaManager.ini");
+
+        buttonAllColors.Font = new Font(buttonAllColors.Font.Name, buttonAllColors.Font.Size, FontStyle.Bold);
+
+        displays = Display.QueryDisplayDevices();
+        displays.Reverse();
+        for (var i = 0; i < displays.Count; i++)
+        {
+            displays[i].numDisplay = i;
+            comboBoxMonitors.Items.Add(i + 1 + ") " + displays[i].displayName);
+        }
+        curDisplay = displays[numDisplay];
+        comboBoxMonitors.SelectedIndex = numDisplay;
+
+        ResyncGammaRampValues();
+
+        initPresets();
+
+        initTrayMenu();
+        notifyIcon.ContextMenuStrip = contextMenu;
+    }
+
+    private void ResyncGammaRampValues()
+    {
+        if (displays.Count <= 0) return;
+        // we'll attempt to read gamma-ramp and reverse calc the approx values to set the track-bar
+        buttonResync.Enabled = false;
+        var gbc = Gamma.InverseGammaRamp (Gamma.GetGammaRamp(curDisplay.displayLink));
+
+        curDisplay.ramp_gbc = new RampGbc (
+            new RampGbcRgb (gbc[0], gbc[0], gbc[0]),
+            new RampGbcRgb (gbc[1], gbc[1], gbc[1]),
+            new RampGbcRgb (gbc[2], gbc[2], gbc[2])
+        );
+        RenderCurInfo_GBC();
+        RenderCurInfo_Monitors();
+        buttonResync.Enabled = true;
+    }
+
+    private void ApplyCurGammaRamp()
+    {
+        var ramp = Gamma.CreateGammaRamp(curDisplay.ramp_gbc);
+        Gamma.SetGammaRamp(curDisplay.displayLink, ramp);
+    }
+    private void ApplyCurMonitorBrightness()
+    {
+        // we'll just change the track-bar values, and its change listener will affect the change
+        if (curDisplay.isExternal) {
+            trackBarMonitorBright.Value = curDisplay.monitorBrightness;
+            trackBarMonitorContrast.Value = curDisplay.monitorContrast;
+        } else {
+            trackBarMonitorBright.Value = curDisplay.monitorBrightness;
+        }
+    }
+
+
+
+    private void HandleTrackBarValueChanged (GBC track)
+    {
+        comboBoxPresets.Text = string.Empty;
+        if (disableChangeFunc) return;
+
+        switch (track)
+        {
+            case GBC.Gamma:
+                curDisplay.ramp_gbc.Gamma .set (gammaSrc, trackBarGamma.Value / 100f);
+                textBoxGamma.Text = (trackBarGamma.Value / 100f).ToString("0.00");
+                break;
+            case GBC.Bright:
+                curDisplay.ramp_gbc.Bright .set (gammaSrc, trackBarBright.Value / 100f);
+                textBoxBrightness.Text = (trackBarBright.Value / 100f).ToString("0.00");
+                break;
+            case GBC.Contrast:
+                curDisplay.ramp_gbc.Contrast .set (gammaSrc, trackBarContrast.Value / 100f);
+                textBoxContrast.Text = (trackBarContrast.Value / 100f).ToString("0.00");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(track), track, null);
+        }
+        ApplyCurGammaRamp();
+    }
+
+    private void trackBarGamma_ValueChanged(object sender, EventArgs e)
+    {
+        HandleTrackBarValueChanged (GBC.Gamma);
+    }
+    private void trackBarContrast_ValueChanged(object sender, EventArgs e)
+    {
+        HandleTrackBarValueChanged (GBC.Contrast);
+    }
+    private void trackBarBright_ValueChanged(object sender, EventArgs e)
+    {
+        HandleTrackBarValueChanged(GBC.Bright);
+    }
+
+    private void trackBarMonitorBright_ValueChanged(object sender, EventArgs e)
+    {
+        comboBoxPresets.Text = string.Empty;
+        if (disableChangeFunc) return;
+
+        curDisplay.monitorBrightness = trackBarMonitorBright.Value;
+        textBoxMonitorBrightness.Text = trackBarMonitorBright.Value.ToString();
+
+        if (curDisplay.isExternal) {
+            ExternalMonitor.SetBrightness(curDisplay.PhysicalHandle, (uint)trackBarMonitorBright.Value);
+        } else {
+            InternalMonitor.SetBrightness((byte)trackBarMonitorBright.Value);
+        }
+    }
+
+    private void trackBarMonitorContrast_ValueChanged(object sender, EventArgs e)
+    {
+        comboBoxPresets.Text = string.Empty;
+        if (disableChangeFunc) return;
+
+        curDisplay.monitorContrast = trackBarMonitorContrast.Value;
+        textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
+
+        ExternalMonitor.SetContrast(curDisplay.PhysicalHandle, (uint)trackBarMonitorContrast.Value);
+    }
+
+    private void buttonAllColors_Click(object sender, EventArgs e)
+    {
+        gammaSrc = GammaSrcColor.Combined;
+        RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+    }
+    private void buttonRed_Click(object sender, EventArgs e)
+    {
+        gammaSrc = GammaSrcColor.Red;
+        RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+    }
+    private void buttonGreen_Click(object sender, EventArgs e)
+    {
+        gammaSrc = GammaSrcColor.Green;
+        RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+    }
+    private void buttonBlue_Click(object sender, EventArgs e)
+    {
+        gammaSrc = GammaSrcColor.Blue;
+        RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+    }
+
+    private void buttonResync_Click(object sender, EventArgs e)
+    {
+        gammaSrc = GammaSrcColor.Combined;
+        RenderCurInfo_ColorBtns();
+        ResyncGammaRampValues();
+    }
+
+    private void checkBoxExContrast_CheckedChanged(object sender, EventArgs e)
+    {
+        trackBarContrast.Maximum = checkBoxExContrast.Checked ? 10000 : 300;
+    }
+
+    private void buttonSave_Click(object sender, EventArgs e)
+    {
+        var tmp = comboBoxPresets.Text;
+        iniFile.Write ("monitor", curDisplay.displayName, curDisplay.displayName+": "+ comboBoxPresets.Text);
+        writeInitSectionGbc();
+        //iniFile.Write("monitorBrightness", curDisplay.monitorBrightness.ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        //iniFile.Write("monitorContrast", curDisplay.monitorContrast.ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        // ^^ we'll keep monitor brighness separate from gamma etc configs for now
+
+        initPresets();
+        comboBoxPresets.Text = curDisplay.displayName + ": " + tmp;
+
+        initTrayMenu();
+    }
+
+    private void buttonDelete_Click(object sender, EventArgs e)
+    {
+        iniFile.DeleteSection(comboBoxPresets.Text);
+
+        initPresets();
+        initTrayMenu();
+    }
+
+    private void buttonReset_Click(object sender, EventArgs e)
+    {
+        comboBoxPresets.Text = string.Empty;
+
+        buttonAllColors.PerformClick();
+
+        trackBarGamma.Value = 100;
+        trackBarBright.Value = 0;
+        trackBarContrast.Value = 100;
+
+        curDisplay.ramp_gbc = RampGbc.GetDefaultRampGbc();
+        Gamma.ResetGammaRamp(displays[numDisplay].displayLink);
+
+        //trackBarMonitorBright.Value = 100;
+        //if (curDisplay.isExternal) {
+        //    trackBarMonitorContrast.Value = 50;
+        //}
+        // ^^ we'd rather have even reset not touch physical monitor brightness, just reset gamma-ramp dat
+
+        initPresets();
+        initTrayMenu();
+    }
+
+    private void buttonHide_Click(object sender, EventArgs e)
+    {
+        Hide();
+    }
+    private void buttonExit_Click(object sender, EventArgs e)
+    {
+        FormClosing -= Window_FormClosing;
+        Close();
+    }
+
+    private void pictureBox_Click(object sender, MouseEventArgs e)
+    {
+        if (e.Button == MouseButtons.Right)
+        {
+            Hide();
+        }
+    }
+
+    private void comboBoxMonitors_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        var num = comboBoxMonitors.SelectedItem.ToString();
+
+        num = num.Substring(0, num.IndexOf(")"));
+        numDisplay = int.Parse(num)-1;
+
+        curDisplay = displays[numDisplay];
+        RenderCurInfo();
+
+        initPresets();
+    }
+
+    private void buttonForward_Click(object sender, EventArgs e)
+    {
+        if (numDisplay + 1 <= displays.Count-1)
+        {
+            comboBoxMonitors.SelectedIndex = numDisplay + 1;
+        } else
+        {
+            comboBoxMonitors.SelectedIndex = 0;
+        }
+    }
+
+    private RampGbc readIniSectionGbc(string section)
+    {
+        var gbc = RampGbc.GetDefaultRampGbc();
+        gbc.Gamma.Red      = float.Parse(iniFile.Read("rGamma",    comboBoxPresets.Text), customCulture);
+        gbc.Gamma.Green    = float.Parse(iniFile.Read("gGamma",    comboBoxPresets.Text), customCulture);
+        gbc.Gamma.Blue     = float.Parse(iniFile.Read("bGamma",    comboBoxPresets.Text), customCulture);
+        gbc.Bright.Red     = float.Parse(iniFile.Read("rBright",   comboBoxPresets.Text), customCulture);
+        gbc.Bright.Green   = float.Parse(iniFile.Read("gBright",   comboBoxPresets.Text), customCulture);
+        gbc.Bright.Blue    = float.Parse(iniFile.Read("bBright",   comboBoxPresets.Text), customCulture);
+        gbc.Contrast.Red   = float.Parse(iniFile.Read("rContrast", comboBoxPresets.Text), customCulture);
+        gbc.Contrast.Green = float.Parse(iniFile.Read("gContrast", comboBoxPresets.Text), customCulture);
+        gbc.Contrast.Blue  = float.Parse(iniFile.Read("bContrast", comboBoxPresets.Text), customCulture);
+        return gbc;
+    }
+    private void writeInitSectionGbc()
+    {
+        iniFile.Write ("rGamma",    curDisplay.ramp_gbc.Gamma.Red      .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("gGamma",    curDisplay.ramp_gbc.Gamma.Green    .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("bGamma",    curDisplay.ramp_gbc.Gamma.Blue     .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("rContrast", curDisplay.ramp_gbc.Bright.Red     .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("gContrast", curDisplay.ramp_gbc.Bright.Green   .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("bContrast", curDisplay.ramp_gbc.Bright.Blue    .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("rBright",   curDisplay.ramp_gbc.Contrast.Red   .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("gBright",   curDisplay.ramp_gbc.Contrast.Green .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("bBright",   curDisplay.ramp_gbc.Contrast.Blue  .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+    }
+
+    private void comboBoxPresets_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (disableChangeFunc) return;
+
+        curDisplay.ramp_gbc = readIniSectionGbc(comboBoxPresets.Text);
+
+        //curDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", comboBoxPresets.Text));
+        //curDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", comboBoxPresets.Text));
+        // ^^ we'll keep monitor brighness separate from gamma etc configs for now
+
+        initTrayMenu();
+
+        gammaSrc = GammaSrcColor.Combined;
+        RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+        RenderCurInfo_Monitors();
+
+        // first lets set the gamma-ramp
+        ApplyCurGammaRamp();
+
+        // next set the monitor brightness too
+        // .. but meh .. we're gonna disable this .. cleaner to avoid messing up monitor brightness just from picking gamma presets
+        //ApplyCurMonitorBrightness();
+    }
+
+    //tray
+    private void Window_Resize(object sender, EventArgs e)
+    {
+        if (WindowState == FormWindowState.Minimized) {
+            Hide();
+        } else {
+            TopMost = true;
+        }
+    }
+    private void Window_Activated(object sender, EventArgs e)
+    {
+        TopMost = true;
+        // we'll also do an eqv of resync
+        gammaSrc = GammaSrcColor.Combined;
+        RenderCurInfo_ColorBtns();
+        ResyncGammaRampValues();
+    }
+    private void Window_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        e.Cancel = true;
+        Hide();
+    }
+    private void Window_Paint(object sender, PaintEventArgs e)
+    {
+        // Draw border in the inside edge of our content panel (with its content prior anchored to accomodate 1px border)
+        using var borderPen = new Pen(BorderColor, 1);
+        e.Graphics.DrawRectangle (borderPen, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
+    }
+    private void Window_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Escape)
+        {
+            Hide();
+        }
+    }
+
+    private void notifyIcon_Click(object sender, MouseEventArgs e)
+    {
+        Show();
+        TopMost = true;
+        WindowState = FormWindowState.Normal;
+    }
+    private void notifyIcon_DoubleClick(object sender, MouseEventArgs e)
+    {
+        Show();
+        TopMost = true;
+        WindowState = FormWindowState.Normal;
+    }
+    private void toolSettings_Click(object sender, EventArgs e)
+    {
+        Show();
+        TopMost = true;
+        WindowState = FormWindowState.Normal;
+    }
+    private void toolExit_Click(object sender, EventArgs e)
+    {
+        FormClosing -= Window_FormClosing;
+        Close();
+    }
+
+    private void comboBoxToolMonitor_IndexChanged(object sender, EventArgs e)
+    {
+        if (disableChangeFunc) return;
+
+        var monitor = sender.ToString().Substring(0, sender.ToString().IndexOf(":"));
+        /*string comName = toolMonitor.Items[i].ToString().Substring
+                    (0, toolMonitor.Items[i].ToString().IndexOf(":"));*/
+
+        var tmp = 0;
+
+        disableChangeFunc = true;
+
+        for (var i = 0; i < displays.Count; i++)
+        {
+            if (monitor.Equals(displays[i].displayName)) {
+                tmp = i;
+            } else {
+                toolMonitor = toolMonitors[i];
+                toolMonitor.SelectedIndex = 0;
+            }
+        }
+        disableChangeFunc = false;
+
+        toolMonitor = toolMonitors[tmp];
+
+        if (toolMonitor.SelectedIndex == 0) return;
+
+
+        for (var i = 0; i < displays.Count; i++)
+        {
+            if (displays[i].displayName.Equals(toolMonitor.Items[0].ToString().Substring(0, toolMonitor.Items[0].ToString().IndexOf(":"))))
+            {
+                comboBoxMonitors.Text = i + 1 + ") " + displays[i].displayName;
+                numDisplay = i;
+                curDisplay.numDisplay = numDisplay;
+                curDisplay.displayLink = displays[i].displayLink;
+                curDisplay.isExternal = displays[i].isExternal;
+                break;
             }
         }
 
-        private void initTrayMenu()
+        curDisplay.displayName = toolMonitor.Items[0].ToString().Substring(0, toolMonitor.Items[0].ToString().IndexOf(":"));
+
+        curDisplay.ramp_gbc = readIniSectionGbc(toolMonitor.Text);
+
+        //curDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", toolMonitor.Text));
+        //curDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", toolMonitor.Text));
+
+        RenderCurInfo();
+        initPresets();
+        buttonAllColors.PerformClick();
+        ApplyCurGammaRamp();
+        //ApplyCurMonitorBrightness();
+    }
+
+    private static void ApplyDarkMode(Control control)
+    {
+        control.BackColor = BackgroundColor;
+        control.ForeColor = ForegroundColor;
+
+        foreach (Control childControl in control.Controls)
         {
-            contextMenu.Items.Clear();
-            toolMonitors.Clear();
-
-            ToolStripMenuItem toolSetting = new ToolStripMenuItem("Settings", null, toolSettings_Click);
-            contextMenu.Items.Add(toolSetting);
-
-            ToolStripSeparator toolStripSeparator1 = new ToolStripSeparator();
-            contextMenu.Items.Add(toolStripSeparator1);
-
-            for (int i = 0; i < displays.Count; i++)
+            if (childControl is Button button)
             {
-                toolMonitor = new ToolStripComboBox(displays[i].displayName);
-                toolMonitor.DropDownStyle = ComboBoxStyle.DropDownList;
-
-                toolMonitor.Items.Add(displays[i].displayName + ":");
-                toolMonitor.Text = displays[i].displayName + ":";
-
-                toolMonitor.SelectedIndexChanged += new EventHandler(comboBoxToolMonitor_IndexChanged);
-
-                string[] presets = iniFile.GetSections();
-                if (presets != null)
-                {
-                    for (int j = 0; j < presets.Length; j++)
-                    {
-                        if (iniFile.Read("monitor", presets[j]).Equals(displays[i].displayName))
-                        {
-                            //preset.name = presets[j].Substring(presets[j].IndexOf(")") + 1);
-                            toolMonitor.Items.Add(presets[j]);
-                        }
-                    }
-                }
-                toolMonitors.Add(toolMonitor);
-                contextMenu.Items.Add(toolMonitor);
+                button.BackColor = ButtonColor;
+                button.ForeColor = ButtonTextColor;
+                button.FlatStyle = FlatStyle.Flat;
+                button.FlatAppearance.BorderColor = ButtonBorderColor;
+                button.FlatAppearance.BorderSize = 1;
             }
-            ToolStripSeparator toolStripSeparator2 = new ToolStripSeparator();
-            contextMenu.Items.Add(toolStripSeparator2);
-            ToolStripMenuItem toolExit = new ToolStripMenuItem("Exit", null, toolExit_Click);
-            contextMenu.Items.Add(toolExit);
-        }
-
-        private void fillInfo(Display.DisplayInfo currDisplay)
-        {
-            disableChangeFunc = true;
-
-            textBoxGamma.Text = ((currDisplay.rGamma + currDisplay.gGamma + currDisplay.bGamma) / 3f).ToString("0.00");
-            textBoxContrast.Text = ((currDisplay.rContrast + currDisplay.gContrast + currDisplay.bContrast) / 3f).ToString("0.00");
-            textBoxBrightness.Text = ((currDisplay.rBright + currDisplay.gBright + currDisplay.bBright) / 3f).ToString("0.00");
-
-            trackBarGamma.Value = (int)(((currDisplay.rGamma + currDisplay.gGamma + currDisplay.bGamma) / 3f) * 100f);
-            trackBarContrast.Value = (int)(((currDisplay.rContrast + currDisplay.gContrast + currDisplay.bContrast) / 3f) * 100f);
-            trackBarBrightness.Value = (int)(((currDisplay.rBright + currDisplay.gBright + currDisplay.bBright) / 3f) * 100f);
-
-            if (currDisplay.isExternal)
+            else if (childControl is TextBox textBox)
             {
-                labelMonitorContrastUp.Visible = true;
-                labelMonitorContrastDown.Visible = true;
-                trackBarMonitorContrast.Visible = true;
-                textBoxMonitorContrast.Visible = true;
-
-                trackBarMonitorBrightness.Value = ExternalMonitor.GetBrightness(currDisplay.PhysicalHandle);
-                textBoxMonitorBrightness.Text  = trackBarMonitorBrightness.Value.ToString();
-
-                trackBarMonitorContrast.Value = ExternalMonitor.GetContrast(currDisplay.PhysicalHandle);
-                textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
+                textBox.BackColor = BackgroundColor;
+                textBox.ForeColor = ForegroundColor;
+                textBox.BorderStyle = BorderStyle.None;
+            }
+            else if (childControl is ComboBox comboBox)
+            {
+                comboBox.FlatStyle = FlatStyle.Flat;
+                comboBox.BackColor = BackgroundColor;
+                comboBox.ForeColor = ForegroundColor;
             }
             else
             {
-                labelMonitorContrastUp.Visible = false;
-                labelMonitorContrastDown.Visible = false;
-                trackBarMonitorContrast.Visible = false;
-                textBoxMonitorContrast.Visible = false;
-
-                trackBarMonitorBrightness.Value = InternalMonitor.GetBrightness();
-                textBoxMonitorBrightness.Text = trackBarMonitorBrightness.Value.ToString();
-            }
-            disableChangeFunc = false;
-        }
-        private void Window_Load(object sender, EventArgs e)
-        {
-            Rectangle wa = Screen.PrimaryScreen.WorkingArea;
-            Location = new Point(wa.X + wa.Width - Width - 1, wa.Y + wa.Height - Height - 1);
-        }
-
-        public Window()
-        {
-            InitializeComponent();
-
-            ApplyDarkMode(this);
-            // ^^ we'll ourselves apply dark colors to the winforms default components we use
-
-            EnableDarkMode(); // Enable dark mode
-            // ^^ this is system wide dark-mode to mostly helps with titlebar etc
-            // (but we no longer show titlebar at all, so not that important anymore)
-
-            customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
-            customCulture.NumberFormat.NumberDecimalSeparator = ",";
-
-            iniFile = new IniFile("GammaManager.ini");
-
-            buttonAllColors.Font = new Font(buttonAllColors.Font.Name, buttonAllColors.Font.Size, FontStyle.Bold);
-
-            displays = Display.QueryDisplayDevices();
-            displays.Reverse();
-            for (int i = 0; i < displays.Count; i++)
-            {
-                displays[i].numDisplay = i;
-                comboBoxMonitors.Items.Add(i + 1 + ") " + displays[i].displayName);
-            }
-            currDisplay = displays[numDisplay];
-            comboBoxMonitors.SelectedIndex = numDisplay;
-
-            // at first start, we'll attempt to read gamma-ramp and approx to track-bar values
-            var rampInv = Gamma.InverseGammaRamp (Gamma.GetGammaRamp(currDisplay.displayLink));
-            currDisplay.rGamma    = (float) rampInv[0]; currDisplay.gGamma    = (float) rampInv[0]; currDisplay.bGamma    = (float) rampInv[0];
-            currDisplay.rContrast = (float) rampInv[1]; currDisplay.gContrast = (float) rampInv[1]; currDisplay.bContrast = (float) rampInv[1];
-            currDisplay.rBright   = (float) rampInv[2]; currDisplay.gBright   = (float) rampInv[2]; currDisplay.bBright   = (float) rampInv[2];
-
-            fillInfo(currDisplay);
-
-            initPresets();
-
-            initTrayMenu();
-            notifyIcon.ContextMenuStrip = contextMenu;
-        }
-
-        private void trackBarGamma_ValueChanged(object sender, EventArgs e)
-        {
-            comboBoxPresets.Text = string.Empty;
-
-            if (!disableChangeFunc)
-            {
-                textBoxGamma.Text = ((float)trackBarGamma.Value / 100f).ToString("0.00");
-
-                if (allColors)
-                {
-                    currDisplay.rGamma = (float)trackBarGamma.Value / 100f;
-                    currDisplay.gGamma = (float)trackBarGamma.Value / 100f;
-                    currDisplay.bGamma = (float)trackBarGamma.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                    goto EndColors;
-                }
-
-                if (redColor)
-                {
-                    currDisplay.rGamma = (float)trackBarGamma.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                    goto EndColors;
-                }
-
-                if (greenColor)
-                {
-                    currDisplay.gGamma = (float)trackBarGamma.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                    goto EndColors;
-                }
-
-                if (blueColor)
-                {
-                    currDisplay.bGamma = (float)trackBarGamma.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                }
-
-            EndColors:
-                return;
-
+                ApplyDarkMode(childControl);
             }
         }
-            
-
-        private void trackBarContrast_ValueChanged(object sender, EventArgs e)
-        {
-            comboBoxPresets.Text = string.Empty;
-
-            if (!disableChangeFunc)
-            {
-                textBoxContrast.Text = ((float)trackBarContrast.Value / 100f).ToString("0.00");
-
-                if (allColors)
-                {
-                    currDisplay.rContrast = (float)trackBarContrast.Value / 100f;
-                    currDisplay.gContrast = (float)trackBarContrast.Value / 100f;
-                    currDisplay.bContrast = (float)trackBarContrast.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                    goto EndColors;
-                }
-
-                if (redColor)
-                {
-                    currDisplay.rContrast = (float)trackBarContrast.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                    goto EndColors;
-                }
-
-                if (greenColor)
-                {
-                    currDisplay.gContrast = (float)trackBarContrast.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                    goto EndColors;
-                }
-
-                if (blueColor)
-                {
-                    currDisplay.bContrast = (float)trackBarContrast.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                }
-
-            EndColors:
-                return;
-            }
-        }
-
-        private void trackBarBrightness_ValueChanged(object sender, EventArgs e)
-        {
-            comboBoxPresets.Text = string.Empty;
-
-            if (!disableChangeFunc)
-            {
-                textBoxBrightness.Text = ((float)trackBarBrightness.Value / 100f).ToString("0.00");
-
-                if (allColors)
-                {
-                    currDisplay.rBright = (float)trackBarBrightness.Value / 100f;
-                    currDisplay.gBright = (float)trackBarBrightness.Value / 100f;
-                    currDisplay.bBright = (float)trackBarBrightness.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                    goto EndColors;
-                }
-
-                if (redColor)
-                {
-                    currDisplay.rBright = (float)trackBarBrightness.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                    goto EndColors;
-                }
-
-                if (greenColor)
-                {
-                    currDisplay.gBright = (float)trackBarBrightness.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                    goto EndColors;
-                }
-
-                if (blueColor)
-                {
-                    currDisplay.bBright = (float)trackBarBrightness.Value / 100f;
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma, currDisplay.rContrast,
-                        currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright, currDisplay.bBright));
-                }
-
-            EndColors:
-                return;
-            }
-        }
-
-        private void trackBarMonitorBrightness_ValueChanged(object sender, EventArgs e)
-        {
-            comboBoxPresets.Text = string.Empty;
-
-            if (!disableChangeFunc)
-            {
-                textBoxMonitorBrightness.Text = trackBarMonitorBrightness.Value.ToString();
-
-                currDisplay.monitorBrightness = trackBarMonitorBrightness.Value;
-
-                if (currDisplay.isExternal)
-                {
-                    ExternalMonitor.SetBrightness(currDisplay.PhysicalHandle, (uint)trackBarMonitorBrightness.Value);
-                }
-                else
-                {
-                    InternalMonitor.SetBrightness((byte)trackBarMonitorBrightness.Value);
-                }
-            }
-        }
-
-        private void trackBarMonitorContrast_ValueChanged(object sender, EventArgs e)
-        {
-            comboBoxPresets.Text = string.Empty;
-
-            if (!disableChangeFunc)
-            {
-                textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
-
-                currDisplay.monitorContrast = trackBarMonitorContrast.Value;
-
-                ExternalMonitor.SetContrast(currDisplay.PhysicalHandle, (uint)trackBarMonitorContrast.Value);
-            }
-        }
-
-        private void buttonAllColors_Click(object sender, EventArgs e)
-        {
-            disableChangeFunc = true;
-            clearColors();
-            allColors = true;
-
-            textBoxGamma.Text = ((currDisplay.rGamma + currDisplay.gGamma + currDisplay.bGamma) / 3f).ToString("0.00");
-            textBoxContrast.Text = ((currDisplay.rContrast + currDisplay.gContrast + currDisplay.bContrast) / 3f).ToString("0.00");
-            textBoxBrightness.Text = ((currDisplay.rBright + currDisplay.gBright + currDisplay.bBright) / 3f).ToString("0.00");
-
-            trackBarGamma.Value = (int)(((currDisplay.rGamma + currDisplay.gGamma + currDisplay.bGamma) / 3f) * 100f);
-            trackBarContrast.Value = (int)(((currDisplay.rContrast + currDisplay.gContrast + currDisplay.bContrast) / 3f) * 100f);
-            trackBarBrightness.Value = (int)(((currDisplay.rBright + currDisplay.gBright + currDisplay.bBright) / 3f) * 100f);
-
-            buttonAllColors.Font = new Font(buttonAllColors.Font.Name, buttonAllColors.Font.Size, FontStyle.Bold);
-            disableChangeFunc = false;
-        }
-
-        private void buttonRed_Click(object sender, EventArgs e)
-        {
-            disableChangeFunc = true;
-            clearColors();
-            redColor = true;
-
-            textBoxGamma.Text = currDisplay.rGamma.ToString("0.00");
-            textBoxContrast.Text = currDisplay.rContrast.ToString("0.00");
-            textBoxBrightness.Text = currDisplay.rBright.ToString("0.00");
-
-            trackBarGamma.Value = (int)(currDisplay.rGamma * 100f);
-            trackBarContrast.Value = (int)(currDisplay.rContrast * 100f);
-            trackBarBrightness.Value = (int)(currDisplay.rBright * 100f);
-
-            buttonRed.Font = new Font(buttonRed.Font.Name, buttonRed.Font.Size, FontStyle.Bold);
-            disableChangeFunc = false;
-        }
-
-        private void buttonGreen_Click(object sender, EventArgs e)
-        {
-            disableChangeFunc = true;
-            clearColors();
-            greenColor = true;
-
-            textBoxGamma.Text = currDisplay.gGamma.ToString("0.00");
-            textBoxContrast.Text = currDisplay.gContrast.ToString("0.00");
-            textBoxBrightness.Text = currDisplay.gBright.ToString("0.00");
-
-            trackBarGamma.Value = (int)(currDisplay.gGamma * 100f);
-            trackBarContrast.Value = (int)(currDisplay.gContrast * 100f);
-            trackBarBrightness.Value = (int)(currDisplay.gBright * 100f);
-
-            buttonGreen.Font = new Font(buttonGreen.Font.Name, buttonGreen.Font.Size, FontStyle.Bold);
-            disableChangeFunc = false;
-        }
-
-        private void buttonBlue_Click(object sender, EventArgs e)
-        {
-            disableChangeFunc = true;
-            clearColors();
-            blueColor = true;
-
-            textBoxGamma.Text = currDisplay.bGamma.ToString("0.00");
-            textBoxContrast.Text = currDisplay.bContrast.ToString("0.00");
-            textBoxBrightness.Text = currDisplay.bBright.ToString("0.00");
-
-            trackBarGamma.Value = (int)(currDisplay.bGamma * 100f);
-            trackBarContrast.Value = (int)(currDisplay.bContrast * 100f);
-            trackBarBrightness.Value = (int)(currDisplay.bBright * 100f);
-
-            buttonBlue.Font = new Font(buttonBlue.Font.Name, buttonBlue.Font.Size, FontStyle.Bold);
-            disableChangeFunc = false;
-        }
-
-        private void checkBoxExContrast_CheckedChanged(object sender, EventArgs e)
-        {
-            if (checkBoxExContrast.Checked)
-            {
-                trackBarContrast.Maximum = 10000;
-            } else
-            {
-                trackBarContrast.Maximum = 300;
-            }
-        }
-
-        private void buttonSave_Click(object sender, EventArgs e)
-        {
-            string tmp = comboBoxPresets.Text;
-            iniFile.Write("monitor", currDisplay.displayName, currDisplay.displayName+": "+ comboBoxPresets.Text);
-            iniFile.Write("rGamma", currDisplay.rGamma.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("gGamma", currDisplay.gGamma.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("bGamma", currDisplay.bGamma.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("rContrast", currDisplay.rContrast.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("gContrast", currDisplay.gContrast.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("bContrast", currDisplay.bContrast.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("rBright", currDisplay.rBright.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("gBright", currDisplay.gBright.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            iniFile.Write("bBright", currDisplay.bBright.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            //iniFile.Write("monitorBrightness", currDisplay.monitorBrightness.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            //iniFile.Write("monitorContrast", currDisplay.monitorContrast.ToString(customCulture), currDisplay.displayName + ": " + comboBoxPresets.Text);
-            // ^^ we'll keep monitor brighness separate from gamma etc configs for now
-
-            initPresets();
-            comboBoxPresets.Text = currDisplay.displayName + ": " + tmp;
-
-            initTrayMenu();
-        }
-
-        private void buttonDelete_Click(object sender, EventArgs e)
-        {
-            iniFile.DeleteSection(comboBoxPresets.Text);
-
-            initPresets();
-            initTrayMenu();
-        }
-
-        private void buttonReset_Click(object sender, EventArgs e)
-        {
-            comboBoxPresets.Text = string.Empty;
-
-            buttonAllColors.PerformClick();
-
-            trackBarGamma.Value = 100;
-            trackBarContrast.Value = 100;
-            trackBarBrightness.Value = 0;
-
-            currDisplay.rGamma = 1;
-            currDisplay.gGamma = 1;
-            currDisplay.bGamma = 1;
-            currDisplay.rContrast = 1;
-            currDisplay.gContrast = 1;
-            currDisplay.bContrast = 1;
-            currDisplay.rBright = 0;
-            currDisplay.gBright = 0;
-            currDisplay.bBright = 0;
-
-            
-            if (currDisplay.isExternal)
-            {
-
-                trackBarMonitorBrightness.Value = 100;
-
-                trackBarMonitorContrast.Value = 50;
-            } else
-            {
-                trackBarMonitorBrightness.Value = 100;
-            }
-            
-
-            Gamma.SetGammaRamp(displays[numDisplay].displayLink, Gamma.CreateGammaRamp(1, 1, 1, 1, 1, 1, 0, 0, 0));
-
-            initPresets();
-            initTrayMenu();
-        }
-
-        private void buttonHide_Click(object sender, EventArgs e)
-        {
-            Hide();
-        }
-        private void buttonExit_Click(object sender, EventArgs e)
-        {
-            FormClosing -= Window_FormClosing;
-            Close();
-        }
-
-        private void pictureBox_Click(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Right)
-            {
-                Hide();
-            }
-        }
-
-        private void comboBoxMonitors_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            string num = comboBoxMonitors.SelectedItem.ToString();
-
-            num = num.Substring(0, num.IndexOf(")"));
-            numDisplay = Int32.Parse(num)-1;
-
-            currDisplay = displays[numDisplay];
-            fillInfo(currDisplay);
-            
-            initPresets();
-        }
-
-        private void buttonForward_Click(object sender, EventArgs e)
-        {
-            if (numDisplay + 1 <= displays.Count-1)
-            {
-                comboBoxMonitors.SelectedIndex = numDisplay + 1;
-            } else
-            {
-                comboBoxMonitors.SelectedIndex = 0;
-            }
-        }
-
-        private void comboBoxPresets_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (!disableChangeFunc)
-            {
-                string test = comboBoxPresets.Text;
-
-                currDisplay.rGamma = float.Parse(iniFile.Read("rGamma", comboBoxPresets.Text), customCulture);
-                currDisplay.gGamma = float.Parse(iniFile.Read("gGamma", comboBoxPresets.Text), customCulture);
-                currDisplay.bGamma = float.Parse(iniFile.Read("bGamma", comboBoxPresets.Text), customCulture);
-
-                currDisplay.rContrast = float.Parse(iniFile.Read("rContrast", comboBoxPresets.Text), customCulture);
-                currDisplay.gContrast = float.Parse(iniFile.Read("gContrast", comboBoxPresets.Text), customCulture);
-                currDisplay.bContrast = float.Parse(iniFile.Read("bContrast", comboBoxPresets.Text), customCulture);
-
-                currDisplay.rBright = float.Parse(iniFile.Read("rBright", comboBoxPresets.Text), customCulture);
-                currDisplay.gBright = float.Parse(iniFile.Read("gBright", comboBoxPresets.Text), customCulture);
-                currDisplay.bBright = float.Parse(iniFile.Read("bBright", comboBoxPresets.Text), customCulture);
-
-                //currDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", comboBoxPresets.Text));
-                //currDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", comboBoxPresets.Text));
-                // ^^ we'll keep monitor brighness separate from gamma etc configs for now
-
-                fillInfo(currDisplay);
-                clearColors();
-                buttonAllColors.PerformClick();
-                initTrayMenu();
-
-                // first lets set the gamma-ramp
-                Gamma.SetGammaRamp (currDisplay.displayLink,
-                    Gamma.CreateGammaRamp (
-                        currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma,
-                        currDisplay.rContrast, currDisplay.gContrast, currDisplay.bContrast,
-                        currDisplay.rBright, currDisplay.gBright, currDisplay.bBright
-                    )
-                );
-
-                // next set the monitor brightness too
-                // .. but meh .. we're gonna disable this .. cleaner to avoid messing up monitor brightness just from picking gamma presets
-                //if (currDisplay.isExternal)
-                //{
-                //    trackBarMonitorBrightness.Value = currDisplay.monitorBrightness;
-                //    trackBarMonitorContrast.Value = currDisplay.monitorContrast;
-                //}
-                //else
-                //{
-                //    trackBarMonitorBrightness.Value = currDisplay.monitorBrightness;
-                //}
-            }
-        }
-
-        //tray
-        private void Window_Resize(object sender, EventArgs e)
-        {
-            if (WindowState == FormWindowState.Minimized) {  
-                Hide(); 
-            } else {
-                TopMost = true;
-            }
-        }
-        private void Window_Activated(object sender, EventArgs e)
-        {
-            TopMost = true;
-        }
-        private void Window_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            e.Cancel = true;
-            Hide();
-        }
-        private void Window_Paint(object sender, PaintEventArgs e)
-        {
-            // Draw border in the inside edge of our content panel (with its content prior anchored to accomodate 1px border)
-            using (Pen borderPen = new Pen(BorderColor, 1))
-            {
-                e.Graphics.DrawRectangle (borderPen, 0, 0, this.ClientSize.Width - 1, this.ClientSize.Height - 1);
-            }
-        }
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Escape)
-            {
-                Hide();
-            }
-        }
-
-        private void notifyIcon_Click(object sender, MouseEventArgs e)
-        {
-            Show();
-            TopMost = true;
-            WindowState = FormWindowState.Normal;
-        }
-        private void notifyIcon_DoubleClick(object sender, MouseEventArgs e)
-        {
-            Show();
-            TopMost = true;
-            WindowState = FormWindowState.Normal;
-        }
-        private void toolSettings_Click(object sender, EventArgs e)
-        {
-            Show();
-            TopMost = true;
-            WindowState = FormWindowState.Normal;
-        }
-        private void toolExit_Click(object sender, EventArgs e)
-        {
-            FormClosing -= Window_FormClosing;
-            Close();
-        }
-
-        private void comboBoxToolMonitor_IndexChanged(object sender, EventArgs e)
-        {
-            if (!disableChangeFunc)
-            {
-                string monitor = sender.ToString().Substring(0, sender.ToString().IndexOf(":"));
-                /*string comName = toolMonitor.Items[i].ToString().Substring
-                        (0, toolMonitor.Items[i].ToString().IndexOf(":"));*/
-
-                int tmp = 0;
-
-                disableChangeFunc = true;
-
-                for (int i = 0; i < displays.Count; i++)
-                {
-                    if (monitor.Equals(displays[i].displayName))
-                    {
-                        tmp = i;
-                    }
-                    else
-                    {
-                        toolMonitor = toolMonitors[i];
-                        toolMonitor.SelectedIndex = 0;
-                    }
-                }
-                disableChangeFunc = false;
-
-                toolMonitor = toolMonitors[tmp];
-
-                if (toolMonitor.SelectedIndex != 0)
-                {
-
-                    for (int i = 0; i < displays.Count; i++)
-                    {
-                        if (displays[i].displayName.Equals(toolMonitor.Items[0].ToString().Substring(0, toolMonitor.Items[0].ToString().IndexOf(":"))))
-                        {
-                            comboBoxMonitors.Text = i + 1 + ") " + displays[i].displayName;
-                            
-                            numDisplay = i;
-                            currDisplay.numDisplay = numDisplay;
-                            currDisplay.displayLink = displays[i].displayLink;
-                            currDisplay.isExternal = displays[i].isExternal;
-                            break;
-                        }
-                    }
-
-                    currDisplay.displayName = toolMonitor.Items[0].ToString().Substring(0, toolMonitor.Items[0].ToString().IndexOf(":"));
-
-                    currDisplay.rGamma = float.Parse(iniFile.Read("rGamma", toolMonitor.Text), customCulture);
-                    currDisplay.gGamma = float.Parse(iniFile.Read("gGamma", toolMonitor.Text), customCulture);
-                    currDisplay.bGamma = float.Parse(iniFile.Read("bGamma", toolMonitor.Text), customCulture);
-                    currDisplay.rContrast = float.Parse(iniFile.Read("rContrast", toolMonitor.Text), customCulture);
-                    currDisplay.gContrast = float.Parse(iniFile.Read("gContrast", toolMonitor.Text), customCulture);
-                    currDisplay.bContrast = float.Parse(iniFile.Read("bContrast", toolMonitor.Text), customCulture);
-                    currDisplay.rBright = float.Parse(iniFile.Read("rBright", toolMonitor.Text), customCulture);
-                    currDisplay.gBright = float.Parse(iniFile.Read("gBright", toolMonitor.Text), customCulture);
-                    currDisplay.bBright = float.Parse(iniFile.Read("bBright", toolMonitor.Text), customCulture);
-                    currDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", toolMonitor.Text));
-                    currDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", toolMonitor.Text));
-
-                    fillInfo(currDisplay);
-                    initPresets();
-                    buttonAllColors.PerformClick();
-
-                    Gamma.SetGammaRamp(currDisplay.displayLink,
-                        Gamma.CreateGammaRamp(currDisplay.rGamma, currDisplay.gGamma, currDisplay.bGamma,
-                        currDisplay.rContrast, currDisplay.gContrast, currDisplay.bContrast, currDisplay.rBright, currDisplay.gBright,
-                        currDisplay.bBright));
-
-                    if (currDisplay.isExternal)
-                    {
-                        trackBarMonitorBrightness.Value = currDisplay.monitorBrightness;
-                        trackBarMonitorContrast.Value = currDisplay.monitorContrast;
-                    }
-                    else
-                    {
-                        trackBarMonitorBrightness.Value = currDisplay.monitorBrightness;
-                    }
-                }
-            }
-        }
-        private void ApplyDarkMode(Control control)
-        {
-            control.BackColor = BackgroundColor;
-            control.ForeColor = ForegroundColor;
-
-            foreach (Control childControl in control.Controls)
-            {
-                if (childControl is Button button)
-                {
-                    button.BackColor = ButtonColor;
-                    button.ForeColor = ButtonTextColor;
-                    button.FlatStyle = FlatStyle.Flat;
-                    button.FlatAppearance.BorderColor = ButtonBorderColor;
-                    button.FlatAppearance.BorderSize = 1;
-                }
-                else if (childControl is TextBox textBox)
-                {
-                    textBox.BackColor = BackgroundColor;
-                    textBox.ForeColor = ForegroundColor;
-                    textBox.BorderStyle = BorderStyle.None;
-                }
-                else if (childControl is ComboBox comboBox)
-                {
-                    comboBox.FlatStyle = FlatStyle.Flat;
-                    comboBox.BackColor = BackgroundColor;
-                    comboBox.ForeColor = ForegroundColor;
-                }
-                else if (childControl is TrackBar trackBar)
-                {
-                    trackBar.BackColor = TrackBackColor;
-                    trackBar.ForeColor = TrackForeColor;
-                }
-                else
-                {
-                    ApplyDarkMode(childControl);
-                }
-            }
-        }
-        private void EnableDarkMode()
-        {
-            NativeMethods.SetPreferredAppMode(PreferredAppMode.ForceDark);
-
-            var data = new WindowCompositionAttributeData
-            {
-                Attribute = WindowCompositionAttribute.WCA_USEDARKMODECOLORS,
-                Data = Marshal.AllocHGlobal(sizeof(int)),
-                SizeOfData = sizeof(int)
-            };
-
-            Marshal.WriteInt32(data.Data, 1);
-            NativeMethods.SetWindowCompositionAttribute(this.Handle, ref data);
-            Marshal.FreeHGlobal(data.Data);
-        }
-
-        //destroy focuses on buttons, trackbars, comboboxes, text, checkbox
     }
-
-    internal enum PreferredAppMode
+    private void EnableDarkMode()
     {
-        Default,
-        AllowDark,
-        ForceDark,
-        ForceLight,
-        Max
-    }
+        NativeMethods.SetPreferredAppMode(PreferredAppMode.ForceDark);
 
-    internal enum WindowCompositionAttribute
-    {
-        WCA_UNDEFINED = 0,
-        WCA_NCRENDERING_ENABLED = 1,
-        WCA_NCRENDERING_POLICY = 2,
-        WCA_TRANSITIONS_FORCEDISABLED = 3,
-        WCA_ALLOW_NCPAINT = 4,
-        WCA_CAPTION_BUTTON_BOUNDS = 5,
-        WCA_NONCLIENT_RTL_LAYOUT = 6,
-        WCA_FORCE_ICONIC_REPRESENTATION = 7,
-        WCA_EXTENDED_FRAME_BOUNDS = 8,
-        WCA_HAS_ICONIC_BITMAP = 9,
-        WCA_THEME_ATTRIBUTES = 10,
-        WCA_NCRENDERING_EXILED = 11,
-        WCA_NCADORNMENTINFO = 12,
-        WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,
-        WCA_VIDEO_OVERLAY_ACTIVE = 14,
-        WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
-        WCA_DISALLOW_PEEK = 16,
-        WCA_CLOAK = 17,
-        WCA_CLOAKED = 18,
-        WCA_ACCENT_POLICY = 19,
-        WCA_FREEZE_REPRESENTATION = 20,
-        WCA_EVER_UNCLOAKED = 21,
-        WCA_VISUAL_OWNER = 22,
-        WCA_HOLOGRAPHIC = 23,
-        WCA_EXCLUDED_FROM_DDA = 24,
-        WCA_PASSIVEUPDATEMODE = 25,
-        WCA_USEDARKMODECOLORS = 26,
-        WCA_LAST = 27
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct WindowCompositionAttributeData
-    {
-        public WindowCompositionAttribute Attribute;
-        public IntPtr Data;
-        public int SizeOfData;
-    }
-
-    internal static class NativeMethods
-    {
-        [DllImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true)]
-        public static extern int SetPreferredAppMode(PreferredAppMode appMode);
-
-        [DllImport("user32.dll")]
-        public static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
-    }
-
-    public class CustomTrackBar : TrackBar
-    {
-        private Color thumbColor = Color.Aqua;
-        private Color trackColor = Color.Gray;
-
-        public CustomTrackBar()
+        var data = new WindowCompositionAttributeData
         {
-            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+            Attribute = WindowCompositionAttribute.WCA_USEDARKMODECOLORS,
+            Data = Marshal.AllocHGlobal(sizeof(int)),
+            SizeOfData = sizeof(int)
+        };
 
-            this.Margin = new System.Windows.Forms.Padding(4, 2, 4, 2);
-            this.Size = new System.Drawing.Size(360, 10);
-            this.TickStyle = System.Windows.Forms.TickStyle.Both;
-        }
-        protected override void OnValueChanged(EventArgs e)
-        {
-            base.OnValueChanged(e);
-            this.Invalidate();
-        }
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-
-            e.Graphics.Clear(this.BackColor);
-
-            int trackHeight = 1; // Thickness of track
-            int thumbSize = 10;   // Size of the thumb
-
-            int trackY = this.Height / 2 - trackHeight / 2;
-            int thumbX = (int)((float)(this.Value - this.Minimum) / (this.Maximum - this.Minimum) * (this.Width - thumbSize));
-
-            using (Brush trackBrush = new SolidBrush(trackColor))
-            using (Brush thumbBrush = new SolidBrush(thumbColor))
-            {
-                e.Graphics.FillRectangle(trackBrush, new Rectangle(0, trackY, this.Width, trackHeight));
-                e.Graphics.FillEllipse(thumbBrush, new Rectangle(thumbX, this.Height / 2 - thumbSize / 2, thumbSize, thumbSize));
-            }
-
-        }
+        Marshal.WriteInt32(data.Data, 1);
+        NativeMethods.SetWindowCompositionAttribute(Handle, ref data);
+        Marshal.FreeHGlobal(data.Data);
     }
 
+}
+
+internal enum PreferredAppMode
+{
+    Default,
+    AllowDark,
+    ForceDark,
+    ForceLight,
+    Max
+}
+
+internal enum WindowCompositionAttribute
+{
+    WCA_UNDEFINED = 0,
+    WCA_NCRENDERING_ENABLED = 1,
+    WCA_NCRENDERING_POLICY = 2,
+    WCA_TRANSITIONS_FORCEDISABLED = 3,
+    WCA_ALLOW_NCPAINT = 4,
+    WCA_CAPTION_BUTTON_BOUNDS = 5,
+    WCA_NONCLIENT_RTL_LAYOUT = 6,
+    WCA_FORCE_ICONIC_REPRESENTATION = 7,
+    WCA_EXTENDED_FRAME_BOUNDS = 8,
+    WCA_HAS_ICONIC_BITMAP = 9,
+    WCA_THEME_ATTRIBUTES = 10,
+    WCA_NCRENDERING_EXILED = 11,
+    WCA_NCADORNMENTINFO = 12,
+    WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,
+    WCA_VIDEO_OVERLAY_ACTIVE = 14,
+    WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
+    WCA_DISALLOW_PEEK = 16,
+    WCA_CLOAK = 17,
+    WCA_CLOAKED = 18,
+    WCA_ACCENT_POLICY = 19,
+    WCA_FREEZE_REPRESENTATION = 20,
+    WCA_EVER_UNCLOAKED = 21,
+    WCA_VISUAL_OWNER = 22,
+    WCA_HOLOGRAPHIC = 23,
+    WCA_EXCLUDED_FROM_DDA = 24,
+    WCA_PASSIVEUPDATEMODE = 25,
+    WCA_USEDARKMODECOLORS = 26,
+    WCA_LAST = 27
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct WindowCompositionAttributeData
+{
+    public WindowCompositionAttribute Attribute;
+    public IntPtr Data;
+    public int SizeOfData;
+}
+
+internal static class NativeMethods
+{
+    [DllImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true)]
+    public static extern int SetPreferredAppMode(PreferredAppMode appMode);
+
+    [DllImport("user32.dll")]
+    public static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+}
+
+public class CustomTrackBar : TrackBar
+{
+    private static readonly Color ThumbColor = Color.Aqua;
+    private static readonly Color TrackColorNormal = Color.FromArgb(140,140,140);
+    private static readonly Color TrackColorHovered = Color.FromArgb(200, 200, 200);
+
+    private bool _isHovered;
+
+    public CustomTrackBar()
+    {
+        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+
+        Margin = new Padding(4, 2, 4, 2);
+        Size = new Size(360, 10);
+        TickStyle = TickStyle.Both;
+    }
+    protected override void OnValueChanged(EventArgs e)
+    {
+        base.OnValueChanged(e);
+        Invalidate();
+    }
+    protected override void OnMouseEnter(EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        _isHovered = true;
+        Invalidate();
+    }
+
+    protected override void OnMouseLeave(EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        _isHovered = false;
+        Invalidate();
+    }
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+
+        e.Graphics.Clear(BackColor);
+
+        const int trackHeight = 1;  // Thickness of track
+        const int thumbSize = 10;   // Size of the thumb
+
+        var trackY = Height / 2 - trackHeight / 2;
+        var thumbX = (int)((float)(Value - Minimum) / (Maximum - Minimum) * (Width - thumbSize));
+
+        using Brush trackBrush = new SolidBrush(_isHovered ? TrackColorHovered : TrackColorNormal);
+        using Brush thumbBrush = new SolidBrush(ThumbColor);
+        e.Graphics.FillRectangle (trackBrush, new Rectangle (0, trackY, Width, trackHeight));
+        e.Graphics.FillEllipse   (thumbBrush, new Rectangle (thumbX, Height / 2 - thumbSize / 2, thumbSize, thumbSize));
+    }
 }
