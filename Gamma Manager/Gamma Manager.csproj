@@ -104,6 +104,7 @@
     <Compile Include="Gamma.cs" />
     <Compile Include="IniFile.cs" />
     <Compile Include="InternalMonitor.cs" />
+    <Compile Include="DimmingOverlay.cs" />
     <Compile Include="Win.cs" />
     <Compile Include="Window.cs">
       <SubType>Form</SubType>

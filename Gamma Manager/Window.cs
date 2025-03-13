@@ -95,12 +95,6 @@ public partial class Window : Form
     }
 
 
-    private void RenderCurInfo()
-    {
-        //RenderCurInfo_ColorBtns();
-        RenderCurInfo_GBC();
-        RenderCurInfo_Monitors();
-    }
 
     private void RenderCurInfo_ColorBtns()
     {
@@ -108,6 +102,7 @@ public partial class Window : Form
         {
             var style = gammaSrc == boldSrc ? FontStyle.Bold : FontStyle.Regular;
             btn.Font = new Font(btn.Font.Name, btn.Font.Size, style);
+            // .. could try to color font here, but the Red/Green/Blue picks dont look good in dark, esp for the blue
         }
         setFontStyle (buttonRed, GammaSrcColor.Red);
         setFontStyle (buttonGreen, GammaSrcColor.Green);
@@ -129,11 +124,21 @@ public partial class Window : Form
         textBoxGamma.Text = gamma.ToString("0.00");
 
         trackBarBright.Value = (int)(100f * bright);
-        textBoxBrightness.Text = bright.ToString("0.00");
+        textBoxBright.Text = bright.ToString("0.00");
 
         trackBarContrast.Value = (int)(100f * contrast);
         textBoxContrast.Text = contrast.ToString("0.00");
 
+        disableChangeFunc = false;
+    }
+
+    private void RenderCurInfo_Overlay()
+    {
+        if (displays.Count <= 0) return;
+        disableChangeFunc = true;
+        checkBoxOverlay.Checked = curDisplay.overlayEnabled;
+        trackBarOverlay.Value = (int)(100f * curDisplay.ovTransparency);
+        textBoxOverlay.Text = curDisplay.ovTransparency.ToString("0.00");
         disableChangeFunc = false;
     }
 
@@ -157,7 +162,7 @@ public partial class Window : Form
     private void Window_Load(object sender, EventArgs e)
     {
         var wa = Screen.PrimaryScreen.WorkingArea;
-        Location = new Point(wa.X + wa.Width - Width - 1, wa.Y + wa.Height - Height - 1);
+        Location = new Point(wa.X + wa.Width - Width - 24, wa.Y + wa.Height - Height - 24);
     }
 
     public Window()
@@ -244,7 +249,7 @@ public partial class Window : Form
                 break;
             case GBC.Bright:
                 curDisplay.ramp_gbc.Bright .set (gammaSrc, trackBarBright.Value / 100f);
-                textBoxBrightness.Text = (trackBarBright.Value / 100f).ToString("0.00");
+                textBoxBright.Text = (trackBarBright.Value / 100f).ToString("0.00");
                 break;
             case GBC.Contrast:
                 curDisplay.ramp_gbc.Contrast .set (gammaSrc, trackBarContrast.Value / 100f);
@@ -260,18 +265,18 @@ public partial class Window : Form
     {
         HandleTrackBarValueChanged (GBC.Gamma);
     }
-    private void trackBarContrast_ValueChanged(object sender, EventArgs e)
-    {
-        HandleTrackBarValueChanged (GBC.Contrast);
-    }
     private void trackBarBright_ValueChanged(object sender, EventArgs e)
     {
         HandleTrackBarValueChanged(GBC.Bright);
     }
+    private void trackBarContrast_ValueChanged(object sender, EventArgs e)
+    {
+        HandleTrackBarValueChanged (GBC.Contrast);
+    }
 
     private void trackBarMonitorBright_ValueChanged(object sender, EventArgs e)
     {
-        comboBoxPresets.Text = string.Empty;
+        //comboBoxPresets.Text = string.Empty;
         if (disableChangeFunc) return;
 
         curDisplay.monitorBrightness = trackBarMonitorBright.Value;
@@ -283,10 +288,9 @@ public partial class Window : Form
             InternalMonitor.SetBrightness((byte)trackBarMonitorBright.Value);
         }
     }
-
     private void trackBarMonitorContrast_ValueChanged(object sender, EventArgs e)
     {
-        comboBoxPresets.Text = string.Empty;
+        //comboBoxPresets.Text = string.Empty;
         if (disableChangeFunc) return;
 
         curDisplay.monitorContrast = trackBarMonitorContrast.Value;
@@ -294,6 +298,30 @@ public partial class Window : Form
 
         ExternalMonitor.SetContrast(curDisplay.PhysicalHandle, (uint)trackBarMonitorContrast.Value);
     }
+
+
+    private void trackBarOverlay_ValueChanged(object sender, EventArgs e)
+    {
+        if (disableChangeFunc) return;
+        // ^^ e.g. from trackbar value update upon changing monitor selection
+        curDisplay.ovTransparency = trackBarOverlay.Value / 100f;
+        textBoxOverlay.Text = (trackBarOverlay.Value / 100f).ToString("0.00");
+        curDisplay.overlay.Update();
+    }
+    private void checkBoxOverlay_CheckedChanged(object sender, EventArgs e)
+    {
+        if (disableChangeFunc) return;
+        curDisplay.overlayEnabled = checkBoxOverlay.Checked;
+        curDisplay.overlay.Update();
+    }
+    private void checkBoxOverlayEnforced_CheckedChanged(object sender, EventArgs e)
+    {
+        if (disableChangeFunc) return;
+        curDisplay.overlayEnforced = checkBoxOverlayEnforced.Checked;
+        curDisplay.overlay.Update();
+    }
+
+
 
     private void buttonAllColors_Click(object sender, EventArgs e)
     {
@@ -324,12 +352,8 @@ public partial class Window : Form
     {
         gammaSrc = GammaSrcColor.Combined;
         RenderCurInfo_ColorBtns();
+        RenderCurInfo_Overlay();
         ResyncGammaRampValues();
-    }
-
-    private void checkBoxExContrast_CheckedChanged(object sender, EventArgs e)
-    {
-        trackBarContrast.Maximum = checkBoxExContrast.Checked ? 10000 : 300;
     }
 
     private void buttonSave_Click(object sender, EventArgs e)
@@ -404,8 +428,10 @@ public partial class Window : Form
         numDisplay = int.Parse(num)-1;
 
         curDisplay = displays[numDisplay];
-        RenderCurInfo();
-
+        //RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+        RenderCurInfo_Monitors();
+        RenderCurInfo_Overlay();
         initPresets();
     }
 
@@ -462,6 +488,7 @@ public partial class Window : Form
         gammaSrc = GammaSrcColor.Combined;
         RenderCurInfo_ColorBtns();
         RenderCurInfo_GBC();
+        RenderCurInfo_Overlay();
         RenderCurInfo_Monitors();
 
         // first lets set the gamma-ramp
@@ -487,6 +514,7 @@ public partial class Window : Form
         // we'll also do an eqv of resync
         gammaSrc = GammaSrcColor.Combined;
         RenderCurInfo_ColorBtns();
+        RenderCurInfo_Overlay();
         ResyncGammaRampValues();
     }
     private void Window_FormClosing(object sender, FormClosingEventArgs e)
@@ -580,7 +608,10 @@ public partial class Window : Form
         //curDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", toolMonitor.Text));
         //curDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", toolMonitor.Text));
 
-        RenderCurInfo();
+        //RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+        RenderCurInfo_Monitors();
+        RenderCurInfo_Overlay();
         initPresets();
         buttonAllColors.PerformClick();
         ApplyCurGammaRamp();
@@ -707,10 +738,8 @@ public class CustomTrackBar : TrackBar
     public CustomTrackBar()
     {
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
-
-        Margin = new Padding(4, 2, 4, 2);
-        Size = new Size(360, 10);
-        TickStyle = TickStyle.Both;
+        Size = new Size(390, 0);
+        AutoSize = false;
     }
     protected override void OnValueChanged(EventArgs e)
     {

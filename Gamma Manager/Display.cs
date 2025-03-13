@@ -22,12 +22,20 @@ internal class Display
         public string displayLink;
         public bool isExternal;
         public IntPtr PhysicalHandle;
-        //public WinApi.RECT rect;
+        public WinApi.RECT rect;
 
         public RampGbc ramp_gbc = RampGbc.GetDefaultRampGbc();
 
         public int monitorBrightness;
         public int monitorContrast;
+
+        public bool overlayEnabled = true;
+        public bool overlayEnforced = false;
+        public float ovTransparency = 1.0f;
+        public DimmingOverlay overlay;
+
+        public bool colorTempEnabled = false;
+        public int colorTemp = -1;
     }
 
     [DllImport("dxva2.dll", EntryPoint = "GetNumberOfPhysicalMonitorsFromHMONITOR")]
@@ -55,7 +63,7 @@ internal class Display
     {
         List<DisplayInfo> monitors = new List<DisplayInfo>();
 
-        WinApi.MonitorEnumDelegate MonitorEnumProc = new WinApi.MonitorEnumDelegate(
+        WinApi.MonitorEnumDelegate MonitorEnumProc = new WinApi.MonitorEnumDelegate (
             (IntPtr hMonitor, IntPtr hdcMonitor, ref WinApi.RECT lprcMonitor, IntPtr dwData) =>
             {
                 WinApi.MONITORINFOEX monitorInfo = new WinApi.MONITORINFOEX() { Size = Marshal.SizeOf(typeof(WinApi.MONITORINFOEX)) };
@@ -73,6 +81,7 @@ internal class Display
                     DName = DName.Substring(DName.IndexOf("\\") + 1);
                     DName = DName.Substring(0, DName.IndexOf("\\"));
                     monitor.displayName = DName;
+                    monitor.rect = monitorInfo.Monitor;
 
                     /*Console.WriteLine("Left: " + lprcMonitor.Left);
                     Console.WriteLine("Right: " + lprcMonitor.Right);
@@ -112,9 +121,13 @@ internal class Display
                     monitor.monitorBrightness = InternalMonitor.GetBrightness();
                     monitor.monitorContrast = -1;
                 }
+
+                monitor.overlay = new DimmingOverlay(monitor);
+
                 monitors.Add(monitor);
                 return true;
-            });
+            }
+        );
 
         WinApi.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, MonitorEnumProc, IntPtr.Zero);
         return monitors;
