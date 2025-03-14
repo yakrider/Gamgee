@@ -35,7 +35,7 @@ internal class Display
         public DimmingOverlay overlay;
 
         public bool colorTempEnabled = false;
-        public int colorTemp = -1;
+        public int colorTemp = 6500;
     }
 
     [DllImport("dxva2.dll", EntryPoint = "GetNumberOfPhysicalMonitorsFromHMONITOR")]

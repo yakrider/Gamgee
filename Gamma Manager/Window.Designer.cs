@@ -43,31 +43,35 @@ partial class Window
         this.textBoxGamma = new TextBox();
 
         this.labelBright = new Label();
-        this.trackBarBright = new CustomTrackBar { };
+        this.trackBarBright = new CustomTrackBar{};
         this.textBoxBright = new TextBox();
 
         this.labelContrast = new Label();
-        this.trackBarContrast = new CustomTrackBar { };
+        this.trackBarContrast = new CustomTrackBar{};
         this.textBoxContrast = new TextBox();
 
+        this.labelColorTemp = new Label();
+        this.trackBarColorTemp = new CustomTrackBar{};
+        this.textBoxColorTemp = new TextBox();
+
         this.labelOverlay = new Label();
-        this.trackBarOverlay = new CustomTrackBar { };
+        this.trackBarOverlay = new CustomTrackBar{};
         this.textBoxOverlay = new TextBox();
         this.checkBoxOverlay = new CheckBox();
         this.checkBoxOverlayEnforced = new CheckBox();
 
 
-        this.labelMonitorBrightnessUp = new Label();
-        this.labelMonitorBrightnessDown = new Label();
-        this.trackBarMonitorBright = new CustomTrackBar { };
-        this.textBoxMonitorBrightness = new TextBox();
+        this.labelMonitorBrightUp = new Label();
+        this.labelMonitorBrightDown = new Label();
+        this.trackBarMonitorBright = new CustomTrackBar{};
+        this.textBoxMonitorBright = new TextBox();
 
         this.buttonHide = new Button();
         this.buttonExit = new Button();
 
         this.labelMonitorContrastUp = new Label();
         this.labelMonitorContrastDown = new Label();
-        this.trackBarMonitorContrast = new CustomTrackBar { };
+        this.trackBarMonitorContrast = new CustomTrackBar{};
         this.textBoxMonitorContrast = new TextBox();
 
         this.buttonForward = new Button();
@@ -85,57 +89,51 @@ partial class Window
         this.SuspendLayout();
 
         var (topOffset, trackBarSpacing, trackBarOffset, textBoxOffset, checkBoxOffset) = (24, 52, -6, 0, 0);
-        var (x_label, x_track, x_textbox, x_btns1, x_btns2, x_img) = (8, 104, 490, 582, 684, 800);
+        var (x_label, x_track, x_textbox, x_btns1, x_btns2, x_img) = (8, 104, 300, 392, 494, 610);
 
         //
         // labelGamma
         //
-        this.labelGamma.Name = "labelGamma";
         this.labelGamma.Text = "Gamma";
         this.labelGamma.TabStop = false;
         this.labelGamma.Location = new Point(x_label, 28);
-        this.labelGamma.Margin = new Padding(4, 0, 4, 0);
-        //this.labelGamma.Size = new Size(86, 25);
         this.labelGamma.AutoSize = true;
         //
         // labelBright
         //
-        this.labelBright.Name = "labelBright";
         this.labelBright.Text = "Bright";
         this.labelBright.TabStop = false;
         this.labelBright.Location = new Point(x_label, trackBarSpacing + labelGamma.Location.Y);
-        this.labelBright.Margin = new Padding(4, 0, 4, 0);
-        //this.labelBright.Size = new Size(114, 25);
         this.labelBright.AutoSize = true;
         //
         // labelContrast
         //
-        this.labelContrast.Name = "labelContrast";
         this.labelContrast.Text = "Contrast";
         this.labelContrast.TabStop = false;
         this.labelContrast.Location = new Point(x_label, trackBarSpacing + labelBright.Location.Y);
-        this.labelContrast.Margin = new Padding(4, 0, 4, 0);
-        this.labelContrast.Size = new Size(93, 25);
         this.labelContrast.AutoSize = true;
+        //
+        // labelColorTemp
+        //
+        this.labelColorTemp.Text = "Kelvin";
+        this.labelColorTemp.TabStop = false;
+        this.labelColorTemp.Location = new Point(x_label, trackBarSpacing + labelContrast.Location.Y);
+        this.labelColorTemp.AutoSize = true;
         //
         // labelOverlay
         //
-        this.labelOverlay.Name = "labelOverlay";
         this.labelOverlay.Text = "Overlay";
         this.labelOverlay.TabStop = false;
-        this.labelOverlay.Location = new Point(x_label, trackBarSpacing + labelContrast.Location.Y);
-        this.labelOverlay.Margin = new Padding(4, 0, 4, 0);
-        this.labelOverlay.Size = new Size(93, 25);
+        this.labelOverlay.Location = new Point(x_label, trackBarSpacing + labelColorTemp.Location.Y);
         this.labelOverlay.AutoSize = true;
 
         //
         // trackBarGamma
         //
-        this.trackBarGamma.Name = "trackBarGamma";
         this.trackBarGamma.Location = new Point(x_track, trackBarOffset + labelGamma.Location.Y);
         this.trackBarGamma.TabIndex = 0;
-        this.trackBarGamma.SmallChange = 1;
-        this.trackBarGamma.LargeChange = 5;
+        this.trackBarGamma.SmallChange = 2;
+        this.trackBarGamma.LargeChange = 10;
         this.trackBarGamma.Minimum = 30;
         this.trackBarGamma.Maximum = 440;
         this.trackBarGamma.Value = 100;
@@ -143,7 +141,6 @@ partial class Window
         //
         // trackBarBright
         //
-        this.trackBarBright.Name = "trackBarBright";
         this.trackBarBright.Location = new Point(x_track, trackBarOffset + labelBright.Location.Y);
         this.trackBarBright.TabIndex = 1 + trackBarGamma.TabIndex;
         this.trackBarBright.SmallChange = 1;
@@ -155,23 +152,32 @@ partial class Window
         //
         // trackBarContrast
         //
-        this.trackBarContrast.Name = "trackBarContrast";
         this.trackBarContrast.Location = new Point(x_track, trackBarOffset + labelContrast.Location.Y);
         this.trackBarContrast.TabIndex = 1 + trackBarBright.TabIndex;
-        this.trackBarContrast.SmallChange = 1;
-        this.trackBarContrast.LargeChange = 5;
+        this.trackBarContrast.SmallChange = 4;
+        this.trackBarContrast.LargeChange = 15;
         this.trackBarContrast.Minimum = 10;
         this.trackBarContrast.Maximum = 300;
-        this.trackBarContrast.Value = 10;
+        this.trackBarContrast.Value = 100;
         this.trackBarContrast.ValueChanged += new EventHandler(this.trackBarContrast_ValueChanged);
+        //
+        // trackBarColorTemp
+        //
+        this.trackBarColorTemp.Location = new Point(x_track, trackBarOffset + labelColorTemp.Location.Y);
+        this.trackBarColorTemp.TabIndex = 1 + trackBarContrast.TabIndex;
+        this.trackBarColorTemp.SmallChange = 1;
+        this.trackBarColorTemp.LargeChange = 5;
+        this.trackBarColorTemp.Minimum = 20;
+        this.trackBarColorTemp.Maximum = 89;
+        this.trackBarColorTemp.Value = 65;
+        this.trackBarColorTemp.ValueChanged += new EventHandler(this.trackBarColorTemp_ValueChanged);
         //
         // trackBarOverlay (dimming overlay transparency)
         //
         this.trackBarOverlay.Location = new Point(x_track, trackBarOffset + labelOverlay.Location.Y);
-        this.trackBarOverlay.Name = "trackBarOverlay";
-        this.trackBarOverlay.TabIndex = 1 + trackBarContrast.TabIndex;
-        this.trackBarOverlay.SmallChange = 1;
-        this.trackBarOverlay.LargeChange = 5;
+        this.trackBarOverlay.TabIndex = 1 + trackBarColorTemp.TabIndex;
+        this.trackBarOverlay.SmallChange = 10;
+        this.trackBarOverlay.LargeChange = 40;
         this.trackBarOverlay.Maximum = 100;
         this.trackBarOverlay.Minimum = 40;
         this.trackBarOverlay.Value = 100;
@@ -180,65 +186,59 @@ partial class Window
         //
         // textBoxGamma
         //
-        this.textBoxGamma.Name = "textBoxGamma";
         this.textBoxGamma.Location = new Point(x_textbox, textBoxOffset + labelGamma.Location.Y);
         this.textBoxGamma.TabStop = false;
         this.textBoxGamma.ReadOnly = true;
         this.textBoxGamma.Size = new Size(62, 31);
-        this.textBoxGamma.Margin = new Padding(4, 5, 4, 5);
         this.textBoxGamma.TextAlign = HorizontalAlignment.Right;
         //
         // textBoxBright
         //
-        this.textBoxBright.Name = "textBoxBright";
         this.textBoxBright.Location = new Point(x_textbox, textBoxOffset + labelBright.Location.Y);
         this.textBoxBright.TabStop = false;
         this.textBoxBright.ReadOnly = true;
         this.textBoxBright.Size = new Size(62, 31);
-        this.textBoxBright.Margin = new Padding(4, 5, 4, 5);
         this.textBoxBright.TextAlign = HorizontalAlignment.Right;
         //
         // textBoxContrast
         //
-        this.textBoxContrast.Name = "textBoxContrast";
         this.textBoxContrast.Location = new Point(x_textbox, textBoxOffset + labelContrast.Location.Y);
         this.textBoxContrast.TabStop = false;
         this.textBoxContrast.ReadOnly = true;
         this.textBoxContrast.Size = new Size(62, 31);
-        this.textBoxContrast.Margin = new Padding(4, 5, 4, 5);
         this.textBoxContrast.TextAlign = HorizontalAlignment.Right;
+        //
+        // textBoxColorTemp
+        //
+        this.textBoxColorTemp.Location = new Point(x_textbox, textBoxOffset + labelColorTemp.Location.Y);
+        this.textBoxColorTemp.TabStop = false;
+        this.textBoxColorTemp.ReadOnly = true;
+        this.textBoxColorTemp.Size = new Size(62, 31);
+        this.textBoxColorTemp.TextAlign = HorizontalAlignment.Right;
         //
         // textBoxOverlay
         //
-        this.textBoxOverlay.Name = "textBoxOverlay";
         this.textBoxOverlay.Location = new Point(x_textbox, textBoxOffset + labelOverlay.Location.Y);
         this.textBoxOverlay.TabStop = false;
         this.textBoxOverlay.ReadOnly = true;
         this.textBoxOverlay.Size = new Size(62, 31);
-        this.textBoxOverlay.Margin = new Padding(4, 5, 4, 5);
         this.textBoxOverlay.TextAlign = HorizontalAlignment.Right;
 
         //
         // checkBoxOverlay
         //
-        this.checkBoxOverlay.Name = "checkBoxExContrast";
         this.checkBoxOverlay.Text = "Allow";
         this.checkBoxOverlay.TabIndex = 1 + trackBarOverlay.TabIndex;
         this.checkBoxOverlay.Location = new Point(x_btns1, checkBoxOffset + labelOverlay.Location.Y);
-        this.checkBoxOverlay.Margin = new Padding(4, 5, 4, 5);
-        this.checkBoxOverlay.Size = new Size(80, 29);
         this.checkBoxOverlay.AutoSize = true;
         this.checkBoxOverlay.UseVisualStyleBackColor = true;
         this.checkBoxOverlay.CheckedChanged += new EventHandler(this.checkBoxOverlay_CheckedChanged);
         //
         // checkBoxOverlayEnforced
         //
-        this.checkBoxOverlayEnforced.Name = "checkBoxOverlayEnforced";
         this.checkBoxOverlayEnforced.Text = "Force";
         this.checkBoxOverlayEnforced.TabIndex = 2 + trackBarOverlay.TabIndex;
         this.checkBoxOverlayEnforced.Location = new Point(x_btns2,  checkBoxOverlay.Location.Y);
-        this.checkBoxOverlayEnforced.Margin = new Padding(4, 5, 4, 5);
-        this.checkBoxOverlayEnforced.Size = new Size(80, 29);
         this.checkBoxOverlayEnforced.AutoSize = true;
         this.checkBoxOverlayEnforced.UseVisualStyleBackColor = true;
         this.checkBoxOverlayEnforced.CheckedChanged += new EventHandler(this.checkBoxOverlayEnforced_CheckedChanged);
@@ -246,19 +246,17 @@ partial class Window
         //
         // buttonAllColors
         //
-        var (btns_y, btns_w, btns_h) = (8, 104, 42);
-        this.buttonAllColors.Name = "buttonAllColors";
+        var (btns_y, btns_w, btns_h) = (8, 104, 43);
         this.buttonAllColors.Text = "All Colors";
         this.buttonAllColors.TabIndex = 4;
         this.buttonAllColors.Location = new Point(x_btns1, btns_y);
         this.buttonAllColors.TextAlign = ContentAlignment.MiddleCenter;
-        this.buttonAllColors.Size = new Size(btns_w, 3*btns_h-2);
+        this.buttonAllColors.Size = new Size(btns_w, 3*btns_h-5);
         this.buttonAllColors.UseVisualStyleBackColor = true;
         this.buttonAllColors.Click += new EventHandler(this.buttonAllColors_Click);
         //
         // buttonRed
         //
-        this.buttonRed.Name = "buttonRed";
         this.buttonRed.Text = "Red";
         this.buttonRed.TabIndex = 1;
         this.buttonRed.Location = new Point(x_btns2, btns_y);
@@ -269,7 +267,6 @@ partial class Window
         //
         // buttonGreen
         //
-        this.buttonGreen.Name = "buttonGreen";
         this.buttonGreen.Text = "Green";
         this.buttonGreen.TabIndex = 2;
         this.buttonGreen.Location = new Point(x_btns2, btns_h-2 + buttonRed.Location.Y);
@@ -280,10 +277,9 @@ partial class Window
         //
         // buttonBlue
         //
-        this.buttonBlue.Name = "buttonBlue";
         this.buttonBlue.Text = "Blue";
         this.buttonBlue.TabIndex = 3;
-        this.buttonBlue.Location = new Point(x_btns2, btns_h-2 + buttonGreen.Location.Y);
+        this.buttonBlue.Location = new Point(x_btns2, btns_h-3 + buttonGreen.Location.Y);
         this.buttonBlue.TextAlign = ContentAlignment.TopCenter;
         this.buttonBlue.Size = new Size(btns_w, btns_h);
         this.buttonBlue.UseVisualStyleBackColor = true;
@@ -292,10 +288,9 @@ partial class Window
         //
         // buttonResync
         //
-        this.buttonResync.Name = "buttonResync";
         this.buttonResync.Text = "Sync";
         //this.buttonResync.TabIndex = 3;
-        this.buttonResync.Location = new Point(x_btns1, btns_h-2 + buttonBlue.Location.Y);
+        this.buttonResync.Location = new Point(x_btns1, btns_h-4 + buttonBlue.Location.Y);
         this.buttonResync.TextAlign = ContentAlignment.TopCenter;
         this.buttonResync.Size = new Size(btns_w, btns_h);
         this.buttonResync.UseVisualStyleBackColor = true;
@@ -303,22 +298,40 @@ partial class Window
         //
         // buttonReset
         //
-        this.buttonReset.Name = "buttonReset";
         this.buttonReset.Text = "Reset";
         this.buttonReset.TabIndex = 6;
-        this.buttonReset.Location = new Point(x_btns2, btns_h-1 + buttonBlue.Location.Y);
+        this.buttonReset.Location = new Point(x_btns2, btns_h-4 + buttonBlue.Location.Y);
         this.buttonReset.TextAlign = ContentAlignment.TopCenter;
         this.buttonReset.Size = new Size(btns_w, btns_h);
         this.buttonReset.UseVisualStyleBackColor = true;
         this.buttonReset.Click += new EventHandler(this.buttonReset_Click);
+        //
+        // buttonSave
+        //
+        this.buttonSave.Text = "Save";
+        this.buttonSave.TabIndex = 3 + comboBoxMonitors.TabIndex;
+        this.buttonSave.Location = new Point(x_btns1, btns_h-2 + buttonReset.Location.Y);
+        this.buttonSave.TextAlign = ContentAlignment.TopCenter;
+        this.buttonSave.Size = new Size(btns_w, btns_h);
+        this.buttonSave.UseVisualStyleBackColor = true;
+        this.buttonSave.Click += new EventHandler(this.buttonSave_Click);
+        //
+        // buttonDelete
+        //
+        this.buttonDelete.Text = "Delete";
+        this.buttonDelete.TabIndex = 4 + comboBoxMonitors.TabIndex;
+        this.buttonDelete.Location = new Point(x_btns2, btns_h-2 + buttonReset.Location.Y);
+        this.buttonDelete.TextAlign = ContentAlignment.TopCenter;
+        this.buttonDelete.Size = new Size(btns_w, btns_h);
+        this.buttonDelete.UseVisualStyleBackColor = true;
+        this.buttonDelete.Click += new EventHandler(this.buttonDelete_Click);
 
         //
         // comboBoxMonitors
         //
-        this.comboBoxMonitors.Name = "comboBoxMonitors";
         this.comboBoxMonitors.TabIndex = 5;
         this.comboBoxMonitors.Location = new Point(4, trackBarSpacing + labelOverlay.Location.Y);
-        this.comboBoxMonitors.Size = new Size(195, 0);
+        this.comboBoxMonitors.Size = new Size(200, 0);
         this.comboBoxMonitors.FormattingEnabled = true;
         this.comboBoxMonitors.DropDownStyle = ComboBoxStyle.DropDownList;
         this.comboBoxMonitors.PaletteMode = Krypton.Toolkit.PaletteMode.Office2010BlackDarkMode;
@@ -326,74 +339,42 @@ partial class Window
         //
         // buttonForward
         //
-        this.buttonForward.Name = "buttonForward";
         this.buttonForward.Text = ">";
         this.buttonForward.TabIndex = 1 + comboBoxMonitors.TabIndex;
-        this.buttonForward.Location = new Point(205, 0 + comboBoxMonitors.Location.Y);
+        this.buttonForward.Location = new Point(212, 0 + comboBoxMonitors.Location.Y);
         this.buttonForward.TextAlign = ContentAlignment.TopCenter;
-        this.buttonForward.Size = new Size(42, 42);
+        this.buttonForward.Size = new Size(30, 42);
         this.buttonForward.UseVisualStyleBackColor = true;
         this.buttonForward.Click += new EventHandler(this.buttonForward_Click);
         //
         // comboBoxPresets
         //
-        this.comboBoxPresets.Name = "comboBoxPresets";
         this.comboBoxPresets.TabIndex = 2 + comboBoxMonitors.TabIndex;
         this.comboBoxPresets.Location = new Point(250, 0 + comboBoxMonitors.Location.Y);
-        this.comboBoxPresets.Margin = new Padding(4, 5, 4, 5);
-        this.comboBoxPresets.Size = new Size(305, 0);
+        this.comboBoxPresets.Size = new Size(x_img - buttonForward.Location.X - 46, 0);
         this.comboBoxPresets.FormattingEnabled = true;
         this.comboBoxPresets.DropDownStyle = ComboBoxStyle.DropDown;
         this.comboBoxPresets.PaletteMode = Krypton.Toolkit.PaletteMode.Office2010BlackDarkMode;
         this.comboBoxPresets.SelectedIndexChanged += new EventHandler(this.comboBoxPresets_SelectedIndexChanged);
-        //
-        // buttonSave
-        //
-        this.buttonSave.Name = "buttonSave";
-        this.buttonSave.Text = "Save";
-        this.buttonSave.TabIndex = 3 + comboBoxMonitors.TabIndex;
-        this.buttonSave.Location = new Point(x_btns1, 0 + comboBoxMonitors.Location.Y);
-        this.buttonSave.TextAlign = ContentAlignment.TopCenter;
-        this.buttonSave.Size = new Size(btns_w, 42);
-        this.buttonSave.UseVisualStyleBackColor = true;
-        this.buttonSave.Click += new EventHandler(this.buttonSave_Click);
-        //
-        // buttonDelete
-        //
-        this.buttonDelete.Name = "buttonDelete";
-        this.buttonDelete.Text = "Delete";
-        this.buttonDelete.TabIndex = 4 + comboBoxMonitors.TabIndex;
-        this.buttonDelete.Location = new Point(x_btns2, 0 + comboBoxMonitors.Location.Y);
-        this.buttonDelete.TextAlign = ContentAlignment.TopCenter;
-        this.buttonDelete.Size = new Size(btns_w, 42);
-        this.buttonDelete.UseVisualStyleBackColor = true;
-        this.buttonDelete.Click += new EventHandler(this.buttonDelete_Click);
 
         //
-        // labelMonitorBrightnessUp
+        // labelMonitorBrightUp
         //
         var monitorBrightnessY = 14 + trackBarSpacing + comboBoxMonitors.Location.Y;
-        this.labelMonitorBrightnessUp.Name = "labelMonitorBrightnessUp";
-        this.labelMonitorBrightnessUp.Text = "Monitor";
-        this.labelMonitorBrightnessUp.TabStop = false;
-        this.labelMonitorBrightnessUp.Location = new Point(x_label, -12 + monitorBrightnessY);
-        this.labelMonitorBrightnessUp.Margin = new Padding(4, 0, 4, 0);
-        this.labelMonitorBrightnessUp.Size = new Size(84, 25);
-        this.labelMonitorBrightnessUp.AutoSize = true;
+        this.labelMonitorBrightUp.Text = "Monitor";
+        this.labelMonitorBrightUp.TabStop = false;
+        this.labelMonitorBrightUp.Location = new Point(x_label, -12 + monitorBrightnessY);
+        this.labelMonitorBrightUp.AutoSize = true;
         //
-        // labelMonitorBrightnessDown
+        // labelMonitorBrightDown
         //
-        this.labelMonitorBrightnessDown.Name = "labelMonitorBrightnessDown";
-        this.labelMonitorBrightnessDown.Text = "Bright";
-        this.labelMonitorBrightnessDown.TabStop = false;
-        this.labelMonitorBrightnessDown.Location = new Point(x_label, 28 + labelMonitorBrightnessUp.Location.Y);
-        this.labelMonitorBrightnessDown.Margin = new Padding(4, 0, 4, 0);
-        this.labelMonitorBrightnessDown.Size = new Size(114, 25);
-        this.labelMonitorBrightnessDown.AutoSize = true;
+        this.labelMonitorBrightDown.Text = "Bright";
+        this.labelMonitorBrightDown.TabStop = false;
+        this.labelMonitorBrightDown.Location = new Point(x_label, 28 + labelMonitorBrightUp.Location.Y);
+        this.labelMonitorBrightDown.AutoSize = true;
         //
         // trackBarMonitorBright
         //
-        this.trackBarMonitorBright.Name = "trackBarMonitorBright";
         this.trackBarMonitorBright.TabIndex = 18;
         this.trackBarMonitorBright.Location = new Point(x_track, trackBarOffset + monitorBrightnessY);
         this.trackBarMonitorBright.Maximum = 100;
@@ -401,20 +382,17 @@ partial class Window
         this.trackBarMonitorBright.Value = 100;
         this.trackBarMonitorBright.ValueChanged += new EventHandler(this.trackBarMonitorBright_ValueChanged);
         //
-        // textBoxMonitorBrightness
+        // textBoxMonitorBright
         //
-        this.textBoxMonitorBrightness.Name = "textBoxMonitorBrightness";
-        this.textBoxMonitorBrightness.ReadOnly = true;
-        this.textBoxMonitorBrightness.TabStop = false;
-        this.textBoxMonitorBrightness.Location = new Point(-8 + x_textbox, textBoxOffset + monitorBrightnessY);
-        this.textBoxMonitorBrightness.Margin = new Padding(4, 5, 4, 5);
-        this.textBoxMonitorBrightness.Size = new Size(62, 31);
-        this.textBoxMonitorBrightness.TextAlign = HorizontalAlignment.Right;
+        this.textBoxMonitorBright.ReadOnly = true;
+        this.textBoxMonitorBright.TabStop = false;
+        this.textBoxMonitorBright.Location = new Point(-8 + x_textbox, textBoxOffset + monitorBrightnessY);
+        this.textBoxMonitorBright.Size = new Size(62, 31);
+        this.textBoxMonitorBright.TextAlign = HorizontalAlignment.Right;
 
         //
         // buttonHide
         //
-        this.buttonHide.Name = "buttonHide";
         this.buttonHide.Text = "Hide";
         this.buttonHide.TabIndex = 22;
         this.buttonHide.Location = new Point(x_btns1, monitorBrightnessY);
@@ -425,7 +403,6 @@ partial class Window
         //
         // buttonExit
         //
-        this.buttonExit.Name = "buttonExit";
         this.buttonExit.Text = "Exit";
         this.buttonExit.TabIndex = 1 + buttonHide.TabIndex;
         this.buttonExit.Location = new Point(x_btns2, buttonHide.Location.Y);
@@ -438,27 +415,20 @@ partial class Window
         // labelMonitorContrastUp
         //
         var monitorContrastY = trackBarSpacing + monitorBrightnessY;
-        this.labelMonitorContrastUp.Name = "labelMonitorContrastUp";
         this.labelMonitorContrastUp.Text = "Monitor";
         this.labelMonitorContrastUp.TabStop = false;
         this.labelMonitorContrastUp.Location = new Point(x_label, -6 + monitorContrastY);
-        this.labelMonitorContrastUp.Margin = new Padding(4, 0, 4, 0);
-        this.labelMonitorContrastUp.Size = new Size(84, 25);
         this.labelMonitorContrastUp.AutoSize = true;
         //
         // labelMonitorContrastDown
         //
-        this.labelMonitorContrastDown.Name = "labelMonitorContrastDown";
         this.labelMonitorContrastDown.Text = "Contrast";
         this.labelMonitorContrastDown.TabStop = false;
         this.labelMonitorContrastDown.Location = new Point(x_label, 28 + labelMonitorContrastUp.Location.Y);
-        this.labelMonitorContrastDown.Margin = new Padding(4, 0, 4, 0);
-        this.labelMonitorContrastDown.Size = new Size(93, 25);
         this.labelMonitorContrastDown.AutoSize = true;
         //
         // trackBarMonitorContrast
         //
-        this.trackBarMonitorContrast.Name = "trackBarMonitorContrast";
         this.trackBarMonitorContrast.TabIndex = 26;
         this.trackBarMonitorContrast.Location = new Point(x_track, trackBarOffset + monitorContrastY);
         this.trackBarMonitorContrast.LargeChange = 1;
@@ -468,11 +438,9 @@ partial class Window
         //
         // textBoxMonitorContrast
         //
-        this.textBoxMonitorContrast.Name = "textBoxMonitorContrast";
         this.textBoxMonitorContrast.ReadOnly = true;
         this.textBoxMonitorContrast.TabStop = false;
         this.textBoxMonitorContrast.Location = new Point(-8 + x_textbox, textBoxOffset + monitorContrastY);
-        this.textBoxMonitorContrast.Margin = new Padding(4, 5, 4, 5);
         this.textBoxMonitorContrast.Size = new Size(62, 31);
         this.textBoxMonitorContrast.TextAlign = HorizontalAlignment.Right;
 
@@ -487,7 +455,6 @@ partial class Window
         this.pictureBox.Location = new Point(x_img, 2);
         this.pictureBox.Margin = new Padding(4);
         this.pictureBox.Size = new Size(380, 330);
-        this.pictureBox.Name = "pictureBox";
         this.pictureBox.TabIndex = 28;
         this.pictureBox.TabStop = false;
         this.pictureBox.MouseClick += new MouseEventHandler(this.pictureBox_Click);
@@ -535,6 +502,10 @@ partial class Window
         contentPanel.Controls.Add(this.trackBarContrast);
         contentPanel.Controls.Add(this.textBoxContrast);
 
+        contentPanel.Controls.Add(this.labelColorTemp);
+        contentPanel.Controls.Add(this.trackBarColorTemp);
+        contentPanel.Controls.Add(this.textBoxColorTemp);
+
         contentPanel.Controls.Add(this.labelOverlay);
         contentPanel.Controls.Add(this.trackBarOverlay);
         contentPanel.Controls.Add(this.textBoxOverlay);
@@ -556,10 +527,10 @@ partial class Window
         contentPanel.Controls.Add(this.buttonSave);
         contentPanel.Controls.Add(this.buttonDelete);
 
-        contentPanel.Controls.Add(this.labelMonitorBrightnessUp);
-        contentPanel.Controls.Add(this.labelMonitorBrightnessDown);
+        contentPanel.Controls.Add(this.labelMonitorBrightUp);
+        contentPanel.Controls.Add(this.labelMonitorBrightDown);
         contentPanel.Controls.Add(this.trackBarMonitorBright);
-        contentPanel.Controls.Add(this.textBoxMonitorBrightness);
+        contentPanel.Controls.Add(this.textBoxMonitorBright);
 
         contentPanel.Controls.Add(this.labelMonitorContrastDown);
         contentPanel.Controls.Add(this.labelMonitorContrastUp);
@@ -625,6 +596,10 @@ partial class Window
     private CustomTrackBar trackBarContrast;
     private TextBox textBoxContrast;
 
+    private Label labelColorTemp;
+    private CustomTrackBar trackBarColorTemp;
+    private TextBox textBoxColorTemp;
+
     private Label labelOverlay;
     private CustomTrackBar trackBarOverlay;
     private TextBox textBoxOverlay;
@@ -646,10 +621,10 @@ partial class Window
     private Button buttonSave;
     private Button buttonDelete;
 
-    private Label labelMonitorBrightnessUp;
-    private Label labelMonitorBrightnessDown;
+    private Label labelMonitorBrightUp;
+    private Label labelMonitorBrightDown;
     private CustomTrackBar trackBarMonitorBright;
-    private TextBox textBoxMonitorBrightness;
+    private TextBox textBoxMonitorBright;
 
     private Label labelMonitorContrastUp;
     private Label labelMonitorContrastDown;

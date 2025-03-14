@@ -7,6 +7,8 @@ using MathNet.Numerics.Optimization;
 
 namespace Gamma_Manager;
 
+
+
 public struct RampGbcRgb (float red, float green, float blue)
 {
     public float Red = red;
@@ -35,6 +37,8 @@ public struct RampGbcRgb (float red, float green, float blue)
 
 }
 
+
+
 public struct RampGbc (RampGbcRgb gamma, RampGbcRgb bright, RampGbcRgb contrast)
 {
     public RampGbcRgb Gamma = gamma;
@@ -59,6 +63,9 @@ public struct RampGbc (RampGbcRgb gamma, RampGbcRgb bright, RampGbcRgb contrast)
         return new RampGbc(gbc_g, gbc_b, gbc_c);
     }
 }
+
+
+
 
 internal class Gamma
 {
@@ -224,6 +231,64 @@ internal class Gamma
             range[i] = start + i * step;
         }
         return range;
+    }
+
+
+
+
+    public static void SetGammaRamp_ColorTemp (string displayDc, int colorTemp)
+    {
+        var temp = Clamp(colorTemp, 2000, 9000);
+        var (red, green, blue) = ColorTemperatureToRgb(temp);
+
+        var ramp = new ushort[3, 256];
+        for (var i = 0; i < 256; i++)
+        {
+            var brightness = i * 256.0f;
+            ramp [0, i] = (ushort)Math.Max(0.0f, Math.Min(65535.0f, brightness * red));
+            ramp [1, i] = (ushort)Math.Max(0.0f, Math.Min(65535.0f, brightness * green));
+            ramp [2, i] = (ushort)Math.Max(0.0f, Math.Min(65535.0f, brightness * blue));
+        }
+        SetGammaRamp (displayDc, ramp);
+    }
+
+    private static (float red, float green, float blue) ColorTemperatureToRgb (int kelvin)
+    {
+        float red, green, blue;
+
+        kelvin /= 100;
+
+        if (kelvin <= 66) {
+            red = 255;
+        } else {
+            red = kelvin - 60.0f;
+            red = (float)(329.698727446 * Math.Pow(red, -0.1332047592));
+            red = Math.Max(0.0f, Math.Min(255.0f, red));
+        }
+
+        if (kelvin <= 66) {
+            green = kelvin;
+            green = 99.4708025861f * (float)Math.Log(green) - 161.1195681661f;
+            green = Math.Max(0.0f, Math.Min(255.0f, green));
+        } else {
+            green = kelvin - 60.0f;
+            green = (float)(288.1221695283 * Math.Pow(green, -0.0755148492));
+            green = Math.Max(0.0f, Math.Min(255.0f, green));
+        }
+
+        if (kelvin >= 66) {
+            blue = 255.0f;
+        } else {
+            blue = kelvin - 10.0f;
+            blue = 138.5177312231f * (float)Math.Log(blue) - 305.0447927307f;
+            blue = Math.Max(0.0f, Math.Min(255.0f, blue));
+        }
+
+        red /= 255.0f;
+        green /= 255.0f;
+        blue /= 255.0f;
+
+        return (red, green, blue);
     }
 
 

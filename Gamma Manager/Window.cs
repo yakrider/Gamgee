@@ -43,6 +43,8 @@ public partial class Window : Form
     private static readonly Color ButtonTextColor = Color.White;
     private static readonly Color BorderColor = Color.BurlyWood;
 
+
+
     private void initPresets()
     {
         comboBoxPresets.Items.Clear();
@@ -55,6 +57,8 @@ public partial class Window : Form
             }
         }
     }
+
+
 
     private void initTrayMenu()
     {
@@ -96,6 +100,7 @@ public partial class Window : Form
 
 
 
+
     private void RenderCurInfo_ColorBtns()
     {
         void setFontStyle(Button btn, GammaSrcColor boldSrc)
@@ -110,7 +115,14 @@ public partial class Window : Form
         setFontStyle (buttonAllColors, GammaSrcColor.Combined);
     }
 
-
+    private void ResetInfo_GBC()
+    {
+        gammaSrc = GammaSrcColor.Combined;
+        curDisplay.ramp_gbc = RampGbc.GetDefaultRampGbc();
+        Gamma.ResetGammaRamp(curDisplay.displayLink);
+        RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+    }
     private void RenderCurInfo_GBC()
     {
         disableChangeFunc = true;
@@ -132,6 +144,42 @@ public partial class Window : Form
         disableChangeFunc = false;
     }
 
+    private void ResetInfo_ColorTemp()
+    {
+        curDisplay.colorTempEnabled = false;
+        curDisplay.colorTemp = 6500;
+        RenderCurInfo_ColorTemp();
+        UpdateTrackBars_FollowerInfo();
+    }
+    private void RenderCurInfo_ColorTemp()
+    {
+        if (displays.Count <= 0) return;
+        disableChangeFunc = true;
+        trackBarColorTemp.Value = (int)(curDisplay.colorTemp / 100f);
+        textBoxColorTemp.Text = (curDisplay.colorTemp / 1000f).ToString("0.00");
+        disableChangeFunc = false;
+    }
+
+    private void UpdateTrackBars_FollowerInfo()
+    {
+        if (curDisplay.colorTempEnabled)
+        {
+            trackBarColorTemp.IsFollower = false;
+            trackBarGamma.IsFollower = trackBarBright.IsFollower = trackBarContrast.IsFollower = true;
+        } else {
+            trackBarColorTemp.IsFollower = true;
+            trackBarGamma.IsFollower = trackBarBright.IsFollower = trackBarContrast.IsFollower = false;
+        }
+        trackBarGamma.Invalidate(); trackBarBright.Invalidate(); trackBarContrast.Invalidate(); trackBarColorTemp.Invalidate();
+    }
+
+    private void ResetInfo_Overlay()
+    {
+        curDisplay.ovTransparency = 1.0f;
+        curDisplay.overlayEnforced = false;
+        curDisplay.overlay.Update();
+        RenderCurInfo_Overlay();;
+    }
     private void RenderCurInfo_Overlay()
     {
         if (displays.Count <= 0) return;
@@ -142,6 +190,15 @@ public partial class Window : Form
         disableChangeFunc = false;
     }
 
+    private void ResetInfo_Monitors()
+    {
+        // here we could directly update/reset monitor values
+        // (but typically we should seldom want to do so)
+        trackBarMonitorBright.Value = 100;
+        if (curDisplay.isExternal) {
+            trackBarMonitorContrast.Value = 50;
+        }
+    }
     private void RenderCurInfo_Monitors()
     {
         disableChangeFunc = true;
@@ -151,7 +208,7 @@ public partial class Window : Form
 
         trackBarMonitorBright.Value = curDisplay.isExternal ?
             ExternalMonitor.GetBrightness(curDisplay.PhysicalHandle) : InternalMonitor.GetBrightness();
-        textBoxMonitorBrightness.Text  = trackBarMonitorBright.Value.ToString();
+        textBoxMonitorBright.Text  = trackBarMonitorBright.Value.ToString();
 
         if (curDisplay.isExternal) {
             trackBarMonitorContrast.Value = ExternalMonitor.GetContrast(curDisplay.PhysicalHandle);
@@ -159,6 +216,48 @@ public partial class Window : Form
         }
         disableChangeFunc = false;
     }
+
+
+
+
+    private void ApplyCurGammaRamp()
+    {
+        var ramp = Gamma.CreateGammaRamp(curDisplay.ramp_gbc);
+        Gamma.SetGammaRamp(curDisplay.displayLink, ramp);
+    }
+    private void ApplyCurMonitorBrightness()
+    {
+        // we'll just change the track-bar values, and its change listener will affect the change
+        if (curDisplay.isExternal) {
+            trackBarMonitorBright.Value = curDisplay.monitorBrightness;
+            trackBarMonitorContrast.Value = curDisplay.monitorContrast;
+        } else {
+            trackBarMonitorBright.Value = curDisplay.monitorBrightness;
+        }
+    }
+
+    private void ResyncGammaRampValues()
+    {
+        if (displays.Count <= 0) return;
+        // we'll attempt to read gamma-ramp and reverse calc the approx values to set the track-bar
+        buttonResync.Enabled = false;
+        var gbc = Gamma.InverseGammaRamp (Gamma.GetGammaRamp(curDisplay.displayLink));
+
+        curDisplay.ramp_gbc = new RampGbc (
+            new RampGbcRgb (gbc[0], gbc[0], gbc[0]),
+            new RampGbcRgb (gbc[1], gbc[1], gbc[1]),
+            new RampGbcRgb (gbc[2], gbc[2], gbc[2])
+        );
+        RenderCurInfo_GBC();
+        RenderCurInfo_ColorTemp();
+        RenderCurInfo_Monitors();
+        buttonResync.Enabled = true;
+    }
+
+
+
+
+
     private void Window_Load(object sender, EventArgs e)
     {
         var wa = Screen.PrimaryScreen.WorkingArea;
@@ -193,46 +292,17 @@ public partial class Window : Form
         curDisplay = displays[numDisplay];
         comboBoxMonitors.SelectedIndex = numDisplay;
 
+        // instead of reset, we'll try to resync to existant gamma ramp at startup
+        ResetInfo_ColorTemp();
+
+        // but the others should start cleared
+        ResetInfo_Overlay();
         ResyncGammaRampValues();
-
         initPresets();
-
         initTrayMenu();
         notifyIcon.ContextMenuStrip = contextMenu;
     }
 
-    private void ResyncGammaRampValues()
-    {
-        if (displays.Count <= 0) return;
-        // we'll attempt to read gamma-ramp and reverse calc the approx values to set the track-bar
-        buttonResync.Enabled = false;
-        var gbc = Gamma.InverseGammaRamp (Gamma.GetGammaRamp(curDisplay.displayLink));
-
-        curDisplay.ramp_gbc = new RampGbc (
-            new RampGbcRgb (gbc[0], gbc[0], gbc[0]),
-            new RampGbcRgb (gbc[1], gbc[1], gbc[1]),
-            new RampGbcRgb (gbc[2], gbc[2], gbc[2])
-        );
-        RenderCurInfo_GBC();
-        RenderCurInfo_Monitors();
-        buttonResync.Enabled = true;
-    }
-
-    private void ApplyCurGammaRamp()
-    {
-        var ramp = Gamma.CreateGammaRamp(curDisplay.ramp_gbc);
-        Gamma.SetGammaRamp(curDisplay.displayLink, ramp);
-    }
-    private void ApplyCurMonitorBrightness()
-    {
-        // we'll just change the track-bar values, and its change listener will affect the change
-        if (curDisplay.isExternal) {
-            trackBarMonitorBright.Value = curDisplay.monitorBrightness;
-            trackBarMonitorContrast.Value = curDisplay.monitorContrast;
-        } else {
-            trackBarMonitorBright.Value = curDisplay.monitorBrightness;
-        }
-    }
 
 
 
@@ -259,6 +329,7 @@ public partial class Window : Form
                 throw new ArgumentOutOfRangeException(nameof(track), track, null);
         }
         ApplyCurGammaRamp();
+        ResetInfo_ColorTemp();
     }
 
     private void trackBarGamma_ValueChanged(object sender, EventArgs e)
@@ -274,13 +345,16 @@ public partial class Window : Form
         HandleTrackBarValueChanged (GBC.Contrast);
     }
 
+
+
+
     private void trackBarMonitorBright_ValueChanged(object sender, EventArgs e)
     {
         //comboBoxPresets.Text = string.Empty;
         if (disableChangeFunc) return;
 
         curDisplay.monitorBrightness = trackBarMonitorBright.Value;
-        textBoxMonitorBrightness.Text = trackBarMonitorBright.Value.ToString();
+        textBoxMonitorBright.Text = trackBarMonitorBright.Value.ToString();
 
         if (curDisplay.isExternal) {
             ExternalMonitor.SetBrightness(curDisplay.PhysicalHandle, (uint)trackBarMonitorBright.Value);
@@ -298,6 +372,22 @@ public partial class Window : Form
 
         ExternalMonitor.SetContrast(curDisplay.PhysicalHandle, (uint)trackBarMonitorContrast.Value);
     }
+
+
+
+
+    private void trackBarColorTemp_ValueChanged(object sender, EventArgs e)
+    {
+        comboBoxPresets.Text = string.Empty;
+        if (disableChangeFunc) return;
+        curDisplay.colorTempEnabled = true;
+        UpdateTrackBars_FollowerInfo();
+        curDisplay.colorTemp = trackBarColorTemp.Value * 100;
+        textBoxColorTemp.Text = (trackBarColorTemp.Value / 10f).ToString("0.00");
+        Gamma.SetGammaRamp_ColorTemp (curDisplay.displayLink, curDisplay.colorTemp);
+    }
+
+
 
 
     private void trackBarOverlay_ValueChanged(object sender, EventArgs e)
@@ -353,7 +443,23 @@ public partial class Window : Form
         gammaSrc = GammaSrcColor.Combined;
         RenderCurInfo_ColorBtns();
         RenderCurInfo_Overlay();
+        RenderCurInfo_ColorTemp();
         ResyncGammaRampValues();
+    }
+
+    private void buttonReset_Click(object sender, EventArgs e)
+    {
+        comboBoxPresets.Text = string.Empty;
+
+        ResetInfo_GBC();
+        ResetInfo_ColorTemp();
+        ResetInfo_Overlay();
+
+        //ResetInfo_Monitors();
+        // ^^ we'd rather have nothing touch physical monitor brightness .. not even the reset click !!
+
+        initPresets();
+        initTrayMenu();
     }
 
     private void buttonSave_Click(object sender, EventArgs e)
@@ -374,29 +480,6 @@ public partial class Window : Form
     private void buttonDelete_Click(object sender, EventArgs e)
     {
         iniFile.DeleteSection(comboBoxPresets.Text);
-
-        initPresets();
-        initTrayMenu();
-    }
-
-    private void buttonReset_Click(object sender, EventArgs e)
-    {
-        comboBoxPresets.Text = string.Empty;
-
-        buttonAllColors.PerformClick();
-
-        trackBarGamma.Value = 100;
-        trackBarBright.Value = 0;
-        trackBarContrast.Value = 100;
-
-        curDisplay.ramp_gbc = RampGbc.GetDefaultRampGbc();
-        Gamma.ResetGammaRamp(displays[numDisplay].displayLink);
-
-        //trackBarMonitorBright.Value = 100;
-        //if (curDisplay.isExternal) {
-        //    trackBarMonitorContrast.Value = 50;
-        //}
-        // ^^ we'd rather have even reset not touch physical monitor brightness, just reset gamma-ramp dat
 
         initPresets();
         initTrayMenu();
@@ -426,12 +509,14 @@ public partial class Window : Form
 
         num = num.Substring(0, num.IndexOf(")"));
         numDisplay = int.Parse(num)-1;
-
         curDisplay = displays[numDisplay];
+
+        // monitor changing shouldnt mean any active action, just to update UI with data for the selected monitor
         //RenderCurInfo_ColorBtns();
         RenderCurInfo_GBC();
         RenderCurInfo_Monitors();
         RenderCurInfo_Overlay();
+        RenderCurInfo_ColorTemp();
         initPresets();
     }
 
@@ -488,8 +573,16 @@ public partial class Window : Form
         gammaSrc = GammaSrcColor.Combined;
         RenderCurInfo_ColorBtns();
         RenderCurInfo_GBC();
-        RenderCurInfo_Overlay();
+
+        // loading preset gamma ramp means color-temp based ramp becomes invalid
+        ResetInfo_ColorTemp();
+
+        // ResetInfo_Overlay();
+        // ^^ we'll keep overlay orthogonal from presets for nwo
+
+        //ApplyCurMonitorBrightness();
         RenderCurInfo_Monitors();
+        // ^^ we'll keep monitor brightness separate from presets, but we'll sync up to external brighness changes
 
         // first lets set the gamma-ramp
         ApplyCurGammaRamp();
@@ -515,6 +608,7 @@ public partial class Window : Form
         gammaSrc = GammaSrcColor.Combined;
         RenderCurInfo_ColorBtns();
         RenderCurInfo_Overlay();
+        RenderCurInfo_ColorTemp();
         ResyncGammaRampValues();
     }
     private void Window_FormClosing(object sender, FormClosingEventArgs e)
@@ -559,6 +653,8 @@ public partial class Window : Form
         FormClosing -= Window_FormClosing;
         Close();
     }
+
+
 
     private void comboBoxToolMonitor_IndexChanged(object sender, EventArgs e)
     {
@@ -608,15 +704,20 @@ public partial class Window : Form
         //curDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", toolMonitor.Text));
         //curDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", toolMonitor.Text));
 
-        //RenderCurInfo_ColorBtns();
-        RenderCurInfo_GBC();
-        RenderCurInfo_Monitors();
-        RenderCurInfo_Overlay();
         initPresets();
-        buttonAllColors.PerformClick();
-        ApplyCurGammaRamp();
+
+        gammaSrc = GammaSrcColor.Combined;
+        RenderCurInfo_ColorBtns();
+        RenderCurInfo_GBC();
+        ResetInfo_ColorTemp();
         //ApplyCurMonitorBrightness();
+        RenderCurInfo_Monitors();
+        //ResetInfo_Overlay();
+        ApplyCurGammaRamp();
     }
+
+
+
 
     private static void ApplyDarkMode(Control control)
     {
@@ -668,6 +769,9 @@ public partial class Window : Form
     }
 
 }
+
+
+
 
 internal enum PreferredAppMode
 {
@@ -729,16 +833,20 @@ internal static class NativeMethods
 
 public class CustomTrackBar : TrackBar
 {
-    private static readonly Color ThumbColor = Color.Aqua;
-    private static readonly Color TrackColorNormal = Color.FromArgb(140,140,140);
-    private static readonly Color TrackColorHovered = Color.FromArgb(200, 200, 200);
+    private static readonly Color ThumbColor_Normal = Color.Aqua;
+    private static readonly Color ThumbColor_Follower = Color.Peru;
+    private static readonly Color TrackColor_Normal = Color.FromArgb(140,140,140);
+    private static readonly Color TrackColor_Hovered = Color.FromArgb(200, 200, 200);
 
     private bool _isHovered;
+
+    // our bar can be either driving data, or just following/reflecting external changes
+    public bool IsFollower { get; set; }
 
     public CustomTrackBar()
     {
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
-        Size = new Size(390, 0);
+        Size = new Size(200, 0);
         AutoSize = false;
     }
     protected override void OnValueChanged(EventArgs e)
@@ -771,8 +879,8 @@ public class CustomTrackBar : TrackBar
         var trackY = Height / 2 - trackHeight / 2;
         var thumbX = (int)((float)(Value - Minimum) / (Maximum - Minimum) * (Width - thumbSize));
 
-        using Brush trackBrush = new SolidBrush(_isHovered ? TrackColorHovered : TrackColorNormal);
-        using Brush thumbBrush = new SolidBrush(ThumbColor);
+        using Brush trackBrush = new SolidBrush(_isHovered ? TrackColor_Hovered : TrackColor_Normal);
+        using Brush thumbBrush = new SolidBrush(IsFollower ? ThumbColor_Follower : ThumbColor_Normal);
         e.Graphics.FillRectangle (trackBrush, new Rectangle (0, trackY, Width, trackHeight));
         e.Graphics.FillEllipse   (thumbBrush, new Rectangle (thumbX, Height / 2 - thumbSize / 2, thumbSize, thumbSize));
     }
