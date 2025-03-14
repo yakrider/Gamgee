@@ -32,8 +32,12 @@ public partial class Window : Form
         Contrast
     }
 
-    bool disableChangeFunc = false;
+    private bool disableChangeFunc = false;
     private GammaSrcColor gammaSrc = GammaSrcColor.Combined;
+
+    public static bool gaammaErrState = false;
+    // ^^ ideally these should be monitor specific ..
+    // .. but for now we'll make it static here and query them directly from within trackbars
 
 
     private static readonly Color BackgroundColor = Color.FromArgb(30,30,30);
@@ -85,7 +89,7 @@ public partial class Window : Form
             {
                 if (iniFile.Read("monitor", preset).Equals(display.displayName))
                 {
-                    //preset.name = preset.Substring(preset.IndexOf(")") + 1);
+                    //preset.name = preset.Substring(preset.IndexOf(":") + 1);
                     toolMonitor.Items.Add(preset);
                 }
             }
@@ -149,28 +153,32 @@ public partial class Window : Form
         curDisplay.colorTempEnabled = false;
         curDisplay.colorTemp = 6500;
         RenderCurInfo_ColorTemp();
-        UpdateTrackBars_FollowerInfo();
+        RenderTrackBars_FollowerInfo();
     }
     private void RenderCurInfo_ColorTemp()
     {
         if (displays.Count <= 0) return;
         disableChangeFunc = true;
+        checkBoxColorTemp.Checked = curDisplay.colorTempEnabled;
+        checkBoxColorTempBlend.Checked = curDisplay.colorTempBlendEnabled;
         trackBarColorTemp.Value = (int)(curDisplay.colorTemp / 100f);
         textBoxColorTemp.Text = (curDisplay.colorTemp / 1000f).ToString("0.00");
         disableChangeFunc = false;
     }
 
-    private void UpdateTrackBars_FollowerInfo()
+    private void RenderTrackBars_FollowerInfo()
     {
-        if (curDisplay.colorTempEnabled)
-        {
-            trackBarColorTemp.IsFollower = false;
-            trackBarGamma.IsFollower = trackBarBright.IsFollower = trackBarContrast.IsFollower = true;
-        } else {
-            trackBarColorTemp.IsFollower = true;
-            trackBarGamma.IsFollower = trackBarBright.IsFollower = trackBarContrast.IsFollower = false;
-        }
-        trackBarGamma.Invalidate(); trackBarBright.Invalidate(); trackBarContrast.Invalidate(); trackBarColorTemp.Invalidate();
+        trackBarColorTemp.IsFollower = !curDisplay.colorTempEnabled;
+        trackBarGamma.IsFollower = trackBarBright.IsFollower = trackBarContrast.IsFollower =
+            (curDisplay.colorTempEnabled && !curDisplay.colorTempBlendEnabled);
+        InvalidateTrackBars();
+    }
+    private void InvalidateTrackBars()
+    {
+        trackBarGamma.Invalidate();
+        trackBarBright.Invalidate();
+        trackBarContrast.Invalidate();
+        trackBarColorTemp.Invalidate();
     }
 
     private void ResetInfo_Overlay()
@@ -203,17 +211,22 @@ public partial class Window : Form
     {
         disableChangeFunc = true;
 
-        labelMonitorContrastUp.Visible = labelMonitorContrastDown.Visible =
-            trackBarMonitorContrast.Visible = textBoxMonitorContrast.Visible = curDisplay.isExternal;
-
         trackBarMonitorBright.Value = curDisplay.isExternal ?
             ExternalMonitor.GetBrightness(curDisplay.PhysicalHandle) : InternalMonitor.GetBrightness();
         textBoxMonitorBright.Text  = trackBarMonitorBright.Value.ToString();
 
+        var numDispStr = (1 + curDisplay.numDisplay).ToString("0");
+        labelMonitorBright.Text   = numDispStr + ": Bright";
+        labelMonitorContrast.Text = numDispStr + ": Contrast";
+
         if (curDisplay.isExternal) {
+            trackBarMonitorContrast.Enabled = textBoxMonitorContrast.Enabled = true;
             trackBarMonitorContrast.Value = ExternalMonitor.GetContrast(curDisplay.PhysicalHandle);
-            textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
+        } else {
+            trackBarMonitorContrast.Enabled = textBoxMonitorContrast.Enabled = false;
+            trackBarMonitorContrast.Value = 50;
         }
+        textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
         disableChangeFunc = false;
     }
 
@@ -222,8 +235,22 @@ public partial class Window : Form
 
     private void ApplyCurGammaRamp()
     {
-        var ramp = Gamma.CreateGammaRamp(curDisplay.ramp_gbc);
-        Gamma.SetGammaRamp(curDisplay.displayLink, ramp);
+        //Gamma.SetGammaRamp (curDisplay.displayLink, Gamma.CreateGammaRamp(curDisplay.ramp_gbc));
+
+        var (gbc, temp) = (curDisplay.colorTempEnabled, curDisplay.colorTempBlendEnabled) switch
+        {
+            (true,  true) => (curDisplay.ramp_gbc, curDisplay.colorTemp),
+            (true, false) => (RampGbc.GetDefaultRampGbc(), curDisplay.colorTemp),
+            (false,    _) => (curDisplay.ramp_gbc, 6500)
+        };
+
+        var success = Gamma.SetGammaRamp_ColorTemp_Blend (curDisplay.displayLink, gbc, temp);
+
+        if (gaammaErrState != !success) {
+            gaammaErrState = !success;
+            InvalidateTrackBars();
+        }
+        RenderCurInfo_Monitors();
     }
     private void ApplyCurMonitorBrightness()
     {
@@ -261,7 +288,7 @@ public partial class Window : Form
     private void Window_Load(object sender, EventArgs e)
     {
         var wa = Screen.PrimaryScreen.WorkingArea;
-        Location = new Point(wa.X + wa.Width - Width - 24, wa.Y + wa.Height - Height - 24);
+        Location = new Point(wa.X + wa.Width - Width - 24, wa.Y + wa.Height - Height - 40);
     }
 
     public Window()
@@ -287,7 +314,7 @@ public partial class Window : Form
         for (var i = 0; i < displays.Count; i++)
         {
             displays[i].numDisplay = i;
-            comboBoxMonitors.Items.Add(i + 1 + ") " + displays[i].displayName);
+            comboBoxMonitors.Items.Add(i + 1 + ": " + displays[i].displayName);
         }
         curDisplay = displays[numDisplay];
         comboBoxMonitors.SelectedIndex = numDisplay;
@@ -328,8 +355,12 @@ public partial class Window : Form
             default:
                 throw new ArgumentOutOfRangeException(nameof(track), track, null);
         }
+
+        if (!curDisplay.colorTempBlendEnabled)
+            ResetInfo_ColorTemp();
+
+        RenderCurInfo_ColorTemp();
         ApplyCurGammaRamp();
-        ResetInfo_ColorTemp();
     }
 
     private void trackBarGamma_ValueChanged(object sender, EventArgs e)
@@ -380,11 +411,30 @@ public partial class Window : Form
     {
         comboBoxPresets.Text = string.Empty;
         if (disableChangeFunc) return;
+
+        // as soon as we change color-temp slider, its enabled (and we set gbc to follower mode)
         curDisplay.colorTempEnabled = true;
-        UpdateTrackBars_FollowerInfo();
+        checkBoxColorTemp.Checked = true;
         curDisplay.colorTemp = trackBarColorTemp.Value * 100;
         textBoxColorTemp.Text = (trackBarColorTemp.Value / 10f).ToString("0.00");
-        Gamma.SetGammaRamp_ColorTemp (curDisplay.displayLink, curDisplay.colorTemp);
+        RenderTrackBars_FollowerInfo();
+        ApplyCurGammaRamp();
+    }
+    private void checkBoxColorTemp_CheckedChanged(object sender, EventArgs e)
+    {
+        if (disableChangeFunc) return;
+        curDisplay.colorTempEnabled = checkBoxColorTemp.Checked;
+        RenderTrackBars_FollowerInfo();
+        ApplyCurGammaRamp();
+    }
+    private void checkBoxColorTempBlend_CheckedChanged(object sender, EventArgs e)
+    {
+        if (disableChangeFunc) return;
+        curDisplay.colorTempBlendEnabled = checkBoxColorTempBlend.Checked;
+        RenderTrackBars_FollowerInfo();
+        if (curDisplay.colorTempEnabled) {
+            ApplyCurGammaRamp();
+        }
     }
 
 
@@ -397,18 +447,23 @@ public partial class Window : Form
         curDisplay.ovTransparency = trackBarOverlay.Value / 100f;
         textBoxOverlay.Text = (trackBarOverlay.Value / 100f).ToString("0.00");
         curDisplay.overlay.Update();
+        RenderCurInfo_Monitors();
     }
     private void checkBoxOverlay_CheckedChanged(object sender, EventArgs e)
     {
         if (disableChangeFunc) return;
-        curDisplay.overlayEnabled = checkBoxOverlay.Checked;
+        curDisplay.overlayEnabled  = checkBoxOverlay.Checked;
+        trackBarOverlay.IsFollower = !checkBoxOverlay.Checked;
+        trackBarOverlay.Invalidate();
         curDisplay.overlay.Update();
+        RenderCurInfo_Monitors();
     }
     private void checkBoxOverlayEnforced_CheckedChanged(object sender, EventArgs e)
     {
         if (disableChangeFunc) return;
         curDisplay.overlayEnforced = checkBoxOverlayEnforced.Checked;
         curDisplay.overlay.Update();
+        RenderCurInfo_Monitors();
     }
 
 
@@ -507,7 +562,7 @@ public partial class Window : Form
     {
         var num = comboBoxMonitors.SelectedItem.ToString();
 
-        num = num.Substring(0, num.IndexOf(")"));
+        num = num.Substring(0, num.IndexOf(":"));
         numDisplay = int.Parse(num)-1;
         curDisplay = displays[numDisplay];
 
@@ -688,7 +743,7 @@ public partial class Window : Form
         {
             if (displays[i].displayName.Equals(toolMonitor.Items[0].ToString().Substring(0, toolMonitor.Items[0].ToString().IndexOf(":"))))
             {
-                comboBoxMonitors.Text = i + 1 + ") " + displays[i].displayName;
+                comboBoxMonitors.Text = i + 1 + ": " + displays[i].displayName;
                 numDisplay = i;
                 curDisplay.numDisplay = numDisplay;
                 curDisplay.displayLink = displays[i].displayLink;
@@ -833,10 +888,13 @@ internal static class NativeMethods
 
 public class CustomTrackBar : TrackBar
 {
-    private static readonly Color ThumbColor_Normal = Color.Aqua;
-    private static readonly Color ThumbColor_Follower = Color.Peru;
     private static readonly Color TrackColor_Normal = Color.FromArgb(140,140,140);
     private static readonly Color TrackColor_Hovered = Color.FromArgb(200, 200, 200);
+
+    private static readonly Color ThumbColor_Normal = Color.Aqua;
+    private static readonly Color ThumbColor_Follower = Color.Peru;
+    private static readonly Color ThumbColor_ErrState = Color.Red;
+    private static readonly Color ThumbColor_Disabled = TrackColor_Normal;
 
     private bool _isHovered;
 
@@ -880,7 +938,18 @@ public class CustomTrackBar : TrackBar
         var thumbX = (int)((float)(Value - Minimum) / (Maximum - Minimum) * (Width - thumbSize));
 
         using Brush trackBrush = new SolidBrush(_isHovered ? TrackColor_Hovered : TrackColor_Normal);
-        using Brush thumbBrush = new SolidBrush(IsFollower ? ThumbColor_Follower : ThumbColor_Normal);
+
+        //using Brush thumbBrush = new SolidBrush(IsFollower ? ThumbColor_Follower : ThumbColor_Normal);
+
+        using Brush thumbBrush = new SolidBrush(
+            (Enabled, IsFollower, Window.gaammaErrState) switch
+            {
+                (false, _, _) => ThumbColor_Disabled,
+                (true, _, true) => ThumbColor_ErrState,
+                (true, false, false) => ThumbColor_Normal,
+                (true, true,  false) => ThumbColor_Follower
+            }
+        );
         e.Graphics.FillRectangle (trackBrush, new Rectangle (0, trackY, Width, trackHeight));
         e.Graphics.FillEllipse   (thumbBrush, new Rectangle (thumbX, Height / 2 - thumbSize / 2, thumbSize, thumbSize));
     }

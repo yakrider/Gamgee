@@ -35,6 +35,7 @@ internal class Display
         public DimmingOverlay overlay;
 
         public bool colorTempEnabled = false;
+        public bool colorTempBlendEnabled = true;
         public int colorTemp = 6500;
     }
 

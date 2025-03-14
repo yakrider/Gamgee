@@ -45,12 +45,6 @@ public struct RampGbc (RampGbcRgb gamma, RampGbcRgb bright, RampGbcRgb contrast)
     public RampGbcRgb Bright = bright;
     public RampGbcRgb Contrast = contrast;
 
-    public void ApplyToDisplay (string displayDc)
-    {
-        var ramp = Gamma_Manager.Gamma.CreateGammaRamp(this);
-        Gamma_Manager.Gamma.SetGammaRamp(displayDc, ramp);
-    }
-
     public static RampGbc GetDefaultRampGbc()
     {
         return GetRampGbc_Gray(1, 0, 1);
@@ -70,12 +64,14 @@ public struct RampGbc (RampGbcRgb gamma, RampGbcRgb bright, RampGbcRgb contrast)
 internal class Gamma
 {
 
-    public static void SetGammaRamp(string displayDc, ushort[,] ramp)
+    public static bool SetGammaRamp(string displayDc, ushort[,] ramp)
     {
         var dc = CreateDC(null, displayDc, null, IntPtr.Zero);
-        SetDeviceGammaRamp(dc, ramp);
+        var success = SetDeviceGammaRamp(dc, ramp);
         DeleteDC(dc);
+        return success;
     }
+
     public static ushort[,] GetGammaRamp(string displayDc)
     {
         var curGamma = new ushort[3, 256];
@@ -91,12 +87,6 @@ internal class Gamma
     }
 
 
-    public static T Clamp<T>(T val, T min, T max) where T : IComparable<T>
-    {
-        if (val.CompareTo(min) < 0) return min;
-        if (val.CompareTo(max) > 0) return max;
-        return val;
-    }
     public static ushort[,] CreateGammaRamp (RampGbc gbc) {
 
         //Gamma check
@@ -150,6 +140,77 @@ internal class Gamma
             ramp[2, i] = (ushort)Clamp((int)(bVal * 256), 0, 65535); // b
         }
         return ramp;
+    }
+
+
+
+
+
+
+
+
+    private static RampGbcRgb rgbTempStd = ColorTemperatureToRgb(6500);
+
+    public static bool SetGammaRamp_ColorTemp_Absolute(string displayDc, int colorTemp)
+    {
+        return SetGammaRamp_ColorTemp_Blend (displayDc, RampGbc.GetDefaultRampGbc(), colorTemp);
+    }
+
+    public static bool SetGammaRamp_ColorTemp_Blend (string displayDc, RampGbc gbc, int colorTemp)
+    {
+        // Get color temperature RGB multipliers for requested temp
+        var temp = Clamp(colorTemp, 2000, 10000);
+        var rgbTemp = ColorTemperatureToRgb(temp);
+
+        // Create a new ramp that applies relative color temp to existing settings
+        var ramp = CreateGammaRamp(gbc);
+
+        for (var i = 0; i < 256; i++)
+        {
+            ramp[0, i] = (ushort) Clamp(ramp[0, i] * (rgbTemp.Red   / rgbTempStd.Red  ), 0, 65535);
+            ramp[1, i] = (ushort) Clamp(ramp[1, i] * (rgbTemp.Green / rgbTempStd.Green), 0, 65535);
+            ramp[2, i] = (ushort) Clamp(ramp[2, i] * (rgbTemp.Blue  / rgbTempStd.Blue ), 0, 65535);
+        }
+        return SetGammaRamp(displayDc, ramp);
+    }
+
+    private static RampGbcRgb ColorTemperatureToRgb (int kelvin)
+    {
+        RampGbcRgb rgb;
+
+        kelvin /= 100;
+
+        if (kelvin <= 66) {
+            rgb.Red = 255;
+        } else {
+            rgb.Red = kelvin - 60.0f;
+            rgb.Red = (float)(329.698727446 * Math.Pow(rgb.Red, -0.1332047592));
+            rgb.Red = Math.Max(0.0f, Math.Min(255.0f, rgb.Red));
+        }
+
+        if (kelvin <= 66) {
+            rgb.Green = kelvin;
+            rgb.Green = 99.4708025861f * (float)Math.Log(rgb.Green) - 161.1195681661f;
+            rgb.Green = Math.Max(0.0f, Math.Min(255.0f, rgb.Green));
+        } else {
+            rgb.Green = kelvin - 60.0f;
+            rgb.Green = (float)(288.1221695283 * Math.Pow(rgb.Green, -0.0755148492));
+            rgb.Green = Math.Max(0.0f, Math.Min(255.0f, rgb.Green));
+        }
+
+        if (kelvin >= 66) {
+            rgb.Blue = 255.0f;
+        } else {
+            rgb.Blue = kelvin - 10.0f;
+            rgb.Blue = 138.5177312231f * (float)Math.Log(rgb.Blue) - 305.0447927307f;
+            rgb.Blue = Math.Max(0.0f, Math.Min(255.0f, rgb.Blue));
+        }
+
+        rgb.Red /= 255.0f;
+        rgb.Green /= 255.0f;
+        rgb.Blue /= 255.0f;
+
+        return rgb;
     }
 
 
@@ -234,61 +295,11 @@ internal class Gamma
     }
 
 
-
-
-    public static void SetGammaRamp_ColorTemp (string displayDc, int colorTemp)
+    public static T Clamp<T>(T val, T min, T max) where T : IComparable<T>
     {
-        var temp = Clamp(colorTemp, 2000, 9000);
-        var (red, green, blue) = ColorTemperatureToRgb(temp);
-
-        var ramp = new ushort[3, 256];
-        for (var i = 0; i < 256; i++)
-        {
-            var brightness = i * 256.0f;
-            ramp [0, i] = (ushort)Math.Max(0.0f, Math.Min(65535.0f, brightness * red));
-            ramp [1, i] = (ushort)Math.Max(0.0f, Math.Min(65535.0f, brightness * green));
-            ramp [2, i] = (ushort)Math.Max(0.0f, Math.Min(65535.0f, brightness * blue));
-        }
-        SetGammaRamp (displayDc, ramp);
-    }
-
-    private static (float red, float green, float blue) ColorTemperatureToRgb (int kelvin)
-    {
-        float red, green, blue;
-
-        kelvin /= 100;
-
-        if (kelvin <= 66) {
-            red = 255;
-        } else {
-            red = kelvin - 60.0f;
-            red = (float)(329.698727446 * Math.Pow(red, -0.1332047592));
-            red = Math.Max(0.0f, Math.Min(255.0f, red));
-        }
-
-        if (kelvin <= 66) {
-            green = kelvin;
-            green = 99.4708025861f * (float)Math.Log(green) - 161.1195681661f;
-            green = Math.Max(0.0f, Math.Min(255.0f, green));
-        } else {
-            green = kelvin - 60.0f;
-            green = (float)(288.1221695283 * Math.Pow(green, -0.0755148492));
-            green = Math.Max(0.0f, Math.Min(255.0f, green));
-        }
-
-        if (kelvin >= 66) {
-            blue = 255.0f;
-        } else {
-            blue = kelvin - 10.0f;
-            blue = 138.5177312231f * (float)Math.Log(blue) - 305.0447927307f;
-            blue = Math.Max(0.0f, Math.Min(255.0f, blue));
-        }
-
-        red /= 255.0f;
-        green /= 255.0f;
-        blue /= 255.0f;
-
-        return (red, green, blue);
+        if (val.CompareTo(min) < 0) return min;
+        if (val.CompareTo(max) > 0) return max;
+        return val;
     }
 
 
