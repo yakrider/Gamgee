@@ -11,11 +11,11 @@ public partial class Window : Form
     System.Globalization.CultureInfo customCulture;
     IniFile iniFile;
 
-    List<Display.DisplayInfo> displays = new List<Display.DisplayInfo>();
+    List<Display.DisplayInfo> displays = [];
     int numDisplay = 0;
     Display.DisplayInfo curDisplay;
 
-    List<ToolStripComboBox> toolMonitors = new List<ToolStripComboBox>();
+    List<ToolStripComboBox> toolMonitors = [];
     ToolStripComboBox toolMonitor;
 
     public enum GammaSrcColor
@@ -455,6 +455,8 @@ public partial class Window : Form
         curDisplay.overlayEnabled  = checkBoxOverlay.Checked;
         trackBarOverlay.IsFollower = !checkBoxOverlay.Checked;
         trackBarOverlay.Invalidate();
+        checkBoxOverlayEnforced.Enabled = checkBoxOverlay.Checked;
+        checkBoxOverlayEnforced.Invalidate();
         curDisplay.overlay.Update();
         RenderCurInfo_Monitors();
     }
@@ -884,73 +886,4 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     public static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
-}
-
-public class CustomTrackBar : TrackBar
-{
-    private static readonly Color TrackColor_Normal = Color.FromArgb(140,140,140);
-    private static readonly Color TrackColor_Hovered = Color.FromArgb(200, 200, 200);
-
-    private static readonly Color ThumbColor_Normal = Color.Aqua;
-    private static readonly Color ThumbColor_Follower = Color.Peru;
-    private static readonly Color ThumbColor_ErrState = Color.Red;
-    private static readonly Color ThumbColor_Disabled = TrackColor_Normal;
-
-    private bool _isHovered;
-
-    // our bar can be either driving data, or just following/reflecting external changes
-    public bool IsFollower { get; set; }
-
-    public CustomTrackBar()
-    {
-        SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
-        Size = new Size(200, 0);
-        AutoSize = false;
-    }
-    protected override void OnValueChanged(EventArgs e)
-    {
-        base.OnValueChanged(e);
-        Invalidate();
-    }
-    protected override void OnMouseEnter(EventArgs e)
-    {
-        base.OnMouseEnter(e);
-        _isHovered = true;
-        Invalidate();
-    }
-
-    protected override void OnMouseLeave(EventArgs e)
-    {
-        base.OnMouseLeave(e);
-        _isHovered = false;
-        Invalidate();
-    }
-    protected override void OnPaint(PaintEventArgs e)
-    {
-        base.OnPaint(e);
-
-        e.Graphics.Clear(BackColor);
-
-        const int trackHeight = 1;  // Thickness of track
-        const int thumbSize = 10;   // Size of the thumb
-
-        var trackY = Height / 2 - trackHeight / 2;
-        var thumbX = (int)((float)(Value - Minimum) / (Maximum - Minimum) * (Width - thumbSize));
-
-        using Brush trackBrush = new SolidBrush(_isHovered ? TrackColor_Hovered : TrackColor_Normal);
-
-        //using Brush thumbBrush = new SolidBrush(IsFollower ? ThumbColor_Follower : ThumbColor_Normal);
-
-        using Brush thumbBrush = new SolidBrush(
-            (Enabled, IsFollower, Window.gaammaErrState) switch
-            {
-                (false, _, _) => ThumbColor_Disabled,
-                (true, _, true) => ThumbColor_ErrState,
-                (true, false, false) => ThumbColor_Normal,
-                (true, true,  false) => ThumbColor_Follower
-            }
-        );
-        e.Graphics.FillRectangle (trackBrush, new Rectangle (0, trackY, Width, trackHeight));
-        e.Graphics.FillEllipse   (thumbBrush, new Rectangle (thumbX, Height / 2 - thumbSize / 2, thumbSize, thumbSize));
-    }
 }

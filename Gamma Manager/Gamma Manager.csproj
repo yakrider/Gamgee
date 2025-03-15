@@ -99,6 +99,12 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CustomCheckBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="CustomTrackBar.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Display.cs" />
     <Compile Include="ExternalMonitor.cs" />
     <Compile Include="Gamma.cs" />

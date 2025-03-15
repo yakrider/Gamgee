@@ -47,14 +47,14 @@ partial class Window
         this.labelColorTemp = new Label();
         this.trackBarColorTemp = new CustomTrackBar{};
         this.textBoxColorTemp = new TextBox();
-        this.checkBoxColorTemp = new CheckBox();
-        this.checkBoxColorTempBlend = new CheckBox();
+        this.checkBoxColorTemp = new CustomCheckBox();
+        this.checkBoxColorTempBlend = new CustomCheckBox();
 
         this.labelOverlay = new Label();
         this.trackBarOverlay = new CustomTrackBar{};
         this.textBoxOverlay = new TextBox();
-        this.checkBoxOverlay = new CheckBox();
-        this.checkBoxOverlayEnforced = new CheckBox();
+        this.checkBoxOverlay = new CustomCheckBox();
+        this.checkBoxOverlayEnforced = new CustomCheckBox();
 
         this.comboBoxMonitors = new Krypton.Toolkit.KryptonComboBox();
         this.comboBoxPresets = new Krypton.Toolkit.KryptonComboBox();
@@ -87,7 +87,7 @@ partial class Window
         this.SuspendLayout();
 
         var (topOffset, trackBarSpacing, trackBarOffset, textBoxOffset, checkBoxOffset) = (24, 52, -6, 0, 0);
-        var (x_label, x_track, x_textbox, x_btns1, x_btns2, x_img) = (8, 104, 300, 392, 494, 610);
+        var (x_label, x_track, x_textbox, x_btns1, x_btns2, x_img) = (8, 115, 295, 382, 484, 600);
 
         //
         // labelGamma
@@ -236,7 +236,7 @@ partial class Window
         //
         this.checkBoxColorTempBlend.Text = "Blend";
         this.checkBoxColorTempBlend.TabIndex = 2 + trackBarColorTemp.TabIndex;
-        this.checkBoxColorTempBlend.Location = new Point(8 + x_btns2, checkBoxOffset + labelColorTemp.Location.Y);
+        this.checkBoxColorTempBlend.Location = new Point(10 + x_btns2, checkBoxOffset + labelColorTemp.Location.Y);
         this.checkBoxColorTempBlend.AutoSize = true;
         this.checkBoxColorTempBlend.UseVisualStyleBackColor = true;
         this.checkBoxColorTempBlend.CheckedChanged += new EventHandler(this.checkBoxColorTempBlend_CheckedChanged);
@@ -255,7 +255,7 @@ partial class Window
         //
         this.checkBoxOverlayEnforced.Text = "Force";
         this.checkBoxOverlayEnforced.TabIndex = 2 + trackBarOverlay.TabIndex;
-        this.checkBoxOverlayEnforced.Location = new Point(8 + x_btns2,  checkBoxOverlay.Location.Y);
+        this.checkBoxOverlayEnforced.Location = new Point(10 + x_btns2,  checkBoxOverlay.Location.Y);
         this.checkBoxOverlayEnforced.AutoSize = true;
         this.checkBoxOverlayEnforced.UseVisualStyleBackColor = true;
         this.checkBoxOverlayEnforced.CheckedChanged += new EventHandler(this.checkBoxOverlayEnforced_CheckedChanged);
@@ -359,7 +359,7 @@ partial class Window
         //
         this.labelMonitorBright.Text = "?: Bright";
         this.labelMonitorBright.TabStop = false;
-        this.labelMonitorBright.Location = new Point(x_label, 14 + trackBarSpacing + comboBoxMonitors.Location.Y);
+        this.labelMonitorBright.Location = new Point(2, 14 + trackBarSpacing + comboBoxMonitors.Location.Y);
         this.labelMonitorBright.AutoSize = true;
         //
         // trackBarMonitorBright
@@ -384,7 +384,7 @@ partial class Window
         //
         this.labelMonitorContrast.Text = "?: Contrast";
         this.labelMonitorContrast.TabStop = false;
-        this.labelMonitorContrast.Location = new Point(x_label, trackBarSpacing + labelMonitorBright.Location.Y);
+        this.labelMonitorContrast.Location = new Point(2, trackBarSpacing + labelMonitorBright.Location.Y);
         this.labelMonitorContrast.AutoSize = true;
         //
         // trackBarMonitorContrast
@@ -600,14 +600,14 @@ partial class Window
     private Label labelColorTemp;
     private CustomTrackBar trackBarColorTemp;
     private TextBox textBoxColorTemp;
-    private CheckBox checkBoxColorTemp;
-    private CheckBox checkBoxColorTempBlend;
+    private CustomCheckBox checkBoxColorTemp;
+    private CustomCheckBox checkBoxColorTempBlend;
 
     private Label labelOverlay;
     private CustomTrackBar trackBarOverlay;
     private TextBox textBoxOverlay;
-    private CheckBox checkBoxOverlay;
-    private CheckBox checkBoxOverlayEnforced;
+    private CustomCheckBox checkBoxOverlay;
+    private CustomCheckBox checkBoxOverlayEnforced;
 
     private Button buttonAllColors;
     private Button buttonRed;
