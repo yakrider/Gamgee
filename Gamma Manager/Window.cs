@@ -9,6 +9,23 @@ namespace Gamma_Manager;
 
 public partial class Window : Form
 {
+    // Constants for hotkey registration
+    private const int HOTKEY_ID = 9000;
+    private const int MOD_ALT = 0x0001;
+    private const int MOD_CONTROL = 0x0002;
+    private const int MOD_SHIFT = 0x0004;
+    private const int WM_HOTKEY = 0x0312;
+
+    // Default hotkey configuration
+    private const Keys DEFAULT_HOTKEY_KEY = Keys.G;
+    private const int DEFAULT_HOTKEY_MODIFIERS = MOD_ALT | MOD_SHIFT;
+
+    // P/Invoke declarations for hotkey functionality
+    [DllImport("user32.dll")]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vk);
+
+    [DllImport("user32.dll")]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     public enum GammaSrcColor
     {
@@ -194,6 +211,86 @@ public partial class Window : Form
         textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
         disableChangeFunc = false;
     }
+    private void RegisterHotkeyFromIni()
+    {
+        try
+        {
+            // Try to read hotkey configuration from INI file
+            string hotkeySection = "Hotkey";
+            string keyStr = iniFile.Read("Key", hotkeySection);
+            string modifiersStr = iniFile.Read("Modifiers", hotkeySection);
+
+            // If either key or modifiers are not specified, use defaults and save them to INI
+            if (string.IsNullOrEmpty(keyStr) || string.IsNullOrEmpty(modifiersStr))
+            {
+                RegisterHotKey(Handle, HOTKEY_ID, DEFAULT_HOTKEY_MODIFIERS, (int)DEFAULT_HOTKEY_KEY);
+                // Save the default configuration to the INI file for future reference
+                SaveHotkeyToIni(DEFAULT_HOTKEY_KEY, DEFAULT_HOTKEY_MODIFIERS);
+                return;
+            }
+
+            // Parse the key
+            if (!Enum.TryParse(keyStr, true, out Keys key))
+            {
+                RegisterHotKey(Handle, HOTKEY_ID, DEFAULT_HOTKEY_MODIFIERS, (int)DEFAULT_HOTKEY_KEY);
+                // Save the default configuration to the INI file for future reference
+                SaveHotkeyToIni(DEFAULT_HOTKEY_KEY, DEFAULT_HOTKEY_MODIFIERS);
+                return;
+            }
+
+            // Parse the modifiers
+            int modifiers = 0;
+            string[] modifierArray = modifiersStr.Split(',');
+            foreach (string modifier in modifierArray)
+            {
+                string trimmedModifier = modifier.Trim().ToLower();
+                if (trimmedModifier == "alt")
+                    modifiers |= MOD_ALT;
+                else if (trimmedModifier == "control" || trimmedModifier == "ctrl")
+                    modifiers |= MOD_CONTROL;
+                else if (trimmedModifier == "shift")
+                    modifiers |= MOD_SHIFT;
+            }
+
+            // Register the hotkey
+            RegisterHotKey(Handle, HOTKEY_ID, modifiers, (int)key);
+        }
+        catch (Exception)
+        {
+            // If anything goes wrong, fall back to the default hotkey
+            RegisterHotKey(Handle, HOTKEY_ID, DEFAULT_HOTKEY_MODIFIERS, (int)DEFAULT_HOTKEY_KEY);
+            // Save the default configuration to the INI file for future reference
+            SaveHotkeyToIni(DEFAULT_HOTKEY_KEY, DEFAULT_HOTKEY_MODIFIERS);
+        }
+    }
+
+    private void SaveHotkeyToIni(Keys key, int modifiers)
+    {
+        try
+        {
+            string hotkeySection = "Hotkey";
+            
+            // Save the key
+            iniFile.Write("Key", key.ToString(), hotkeySection);
+            
+            // Build the modifiers string
+            List<string> modifiersList = new List<string>();
+            if ((modifiers & MOD_ALT) != 0)
+                modifiersList.Add("Alt");
+            if ((modifiers & MOD_CONTROL) != 0)
+                modifiersList.Add("Control");
+            if ((modifiers & MOD_SHIFT) != 0)
+                modifiersList.Add("Shift");
+            
+            // Save the modifiers
+            iniFile.Write("Modifiers", string.Join(", ", modifiersList), hotkeySection);
+        }
+        catch (Exception)
+        {
+            // Silently fail if we can't save the hotkey configuration
+        }
+    }
+
     private void ApplyCurMonitorBrightness()
     {
         // we'll just change the track-bar values, and its change listener will affect the change
@@ -269,6 +366,14 @@ public partial class Window : Form
         customCulture.NumberFormat.NumberDecimalSeparator = ",";
 
         iniFile = new IniFile("GammaManager.ini");
+        
+        // Register the global hotkey from INI file (or use default if not specified)
+        // To configure in INI file, add a [Hotkey] section with Key=G and Modifiers=Alt, Shift
+        // Example:
+        // [Hotkey]
+        // Key=G
+        // Modifiers=Alt, Shift
+        RegisterHotkeyFromIni();
 
         buttonAllColors.Font = new Font(buttonAllColors.Font.Name, buttonAllColors.Font.Size, FontStyle.Bold);
 
@@ -515,8 +620,9 @@ public partial class Window : Form
     }
     private void buttonExit_Click(object sender, EventArgs e)
     {
-        FormClosing -= Window_FormClosing;
-        Close();
+        // Unregister the hotkey before exiting
+        UnregisterHotKey(this.Handle, HOTKEY_ID);
+        Application.Exit();
     }
 
 
@@ -642,8 +748,16 @@ public partial class Window : Form
     }
     private void Window_FormClosing(object sender, FormClosingEventArgs e)
     {
-        e.Cancel = true;
-        Hide();
+        // Unregister the hotkey if the form is actually closing (not just hiding)
+        if (!e.Cancel)
+        {
+            UnregisterHotKey(this.Handle, HOTKEY_ID);
+        }
+        else
+        {
+            e.Cancel = true;
+            Hide();
+        }
     }
     private void Window_Paint(object sender, PaintEventArgs e)
     {
@@ -724,6 +838,29 @@ public partial class Window : Form
     }
 
 
+    // Override WndProc to handle the WM_HOTKEY message
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WM_HOTKEY && m.WParam.ToInt32() == HOTKEY_ID)
+        {
+            // Toggle between showing and hiding the application
+            if (Visible)
+            {
+                Hide();
+            }
+            else
+            {
+                if (WindowState == FormWindowState.Minimized)
+                {
+                    WindowState = FormWindowState.Normal;
+                }
+                Show();
+                Activate();
+                BringToFront();
+            }
+        }
+        base.WndProc(ref m);
+    }
 }
 
 
