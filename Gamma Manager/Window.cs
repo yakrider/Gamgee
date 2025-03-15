@@ -73,7 +73,9 @@ public partial class Window : Form
         {
             if (iniFile.Read("monitor", preset).Equals(curDisp.displayName))
             {
-                comboBoxPresets.Items.Add(preset);
+                // Extract just the preset name part (before the __monitor_name if it exists)
+                string displayName = preset.Contains("__") ? preset.Substring(0, preset.IndexOf("__")) : preset;
+                comboBoxPresets.Items.Add(displayName);
             }
         }
     }
@@ -173,9 +175,17 @@ public partial class Window : Form
     {
         if (displays.Count <= 0) return;
         disableChangeFunc = true;
+        
         checkBoxOverlay.Checked = curDisp.overlayEnabled;
+        checkBoxOverlayEnforced.Checked = curDisp.overlayEnforced;
+        checkBoxOverlayEnforced.Enabled = curDisp.overlayEnabled;
+        
         trackBarOverlay.Value = (int)(100f * curDisp.ovTransparency);
+        trackBarOverlay.IsFollower = !curDisp.overlayEnabled;
+        trackBarOverlay.Invalidate();
+        
         textBoxOverlay.Text = curDisp.ovTransparency.ToString("0.00");
+        
         disableChangeFunc = false;
     }
 
@@ -394,6 +404,18 @@ public partial class Window : Form
         ResetInfo_Overlay();
         ResyncGammaRampValues();
         initPresets();
+        
+        // Load active preset if it exists
+        string activePreset = GetActivePreset();
+        if (!string.IsNullOrEmpty(activePreset))
+        {
+            // Check if the preset exists in the combobox
+            if (comboBoxPresets.Items.Contains(activePreset))
+            {
+                comboBoxPresets.Text = activePreset;
+                // The SelectedIndexChanged event will handle loading the preset
+            }
+        }
     }
 
 
@@ -592,26 +614,51 @@ public partial class Window : Form
         //ResetInfo_Monitors();
         // ^^ we'd rather have nothing touch physical monitor brightness .. not even the reset click !!
         initPresets();
+        
+        // Clear the active preset for this monitor
+        SaveActivePreset("");
     }
 
 
 
     private void buttonSave_Click(object sender, EventArgs e)
     {
-        var tmp = comboBoxPresets.Text;
-        iniFile.Write ("monitor", curDisp.displayName, curDisp.displayName+": "+ comboBoxPresets.Text);
+        var presetName = comboBoxPresets.Text;
+        var sectionName = presetName + "__" + curDisp.displayName;
+        
+        // Save monitor name for this preset
+        iniFile.Write("monitor", curDisp.displayName, sectionName);
+        
+        // Save gamma, brightness, and contrast settings
         writeInitSectionGbc();
-        //iniFile.Write("monitorBrightness", curDisp.monitorBrightness.ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        //iniFile.Write("monitorContrast", curDisp.monitorContrast.ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        // ^^ we'll keep monitor brighness separate from gamma etc configs for now
+        
+        // Note: We intentionally don't save monitor brightness/contrast settings
+        // as these are physical monitor settings that should be kept separate from gamma presets
+        
+        // Refresh the presets list
         initPresets();
-        comboBoxPresets.Text = curDisp.displayName + ": " + tmp;
+        comboBoxPresets.Text = presetName;
+        
+        // Save this as the active preset for this monitor
+        SaveActivePreset(presetName);
     }
 
     private void buttonDelete_Click(object sender, EventArgs e)
     {
-        iniFile.DeleteSection(comboBoxPresets.Text);
+        string presetName = comboBoxPresets.Text;
+        string fullSectionName = presetName + "__" + curDisp.displayName;
+        
+        // Check if this is the active preset
+        string activePreset = GetActivePreset();
+        if (activePreset == presetName)
+        {
+            // Clear the active preset since we're deleting it
+            SaveActivePreset("");
+        }
+        
+        iniFile.DeleteSection(fullSectionName);
         initPresets();
+        comboBoxPresets.Text = string.Empty;
     }
 
     private void buttonHide_Click(object sender, EventArgs e)
@@ -652,6 +699,22 @@ public partial class Window : Form
         RenderCurInfo_Overlay();
         RenderCurInfo_ColorTemp();
         initPresets();
+        
+        // Load active preset for this monitor if it exists
+        disableChangeFunc = true;
+        comboBoxPresets.Text = string.Empty;
+        disableChangeFunc = false;
+        
+        string activePreset = GetActivePreset();
+        if (!string.IsNullOrEmpty(activePreset))
+        {
+            // Check if the preset exists in the combobox
+            if (comboBoxPresets.Items.Contains(activePreset))
+            {
+                comboBoxPresets.Text = activePreset;
+                // The SelectedIndexChanged event will handle loading the preset
+            }
+        }
     }
 
     private void buttonForward_Click(object sender, EventArgs e)
@@ -669,60 +732,148 @@ public partial class Window : Form
     {
         if (disableChangeFunc) return;
 
-        curDisp.ramp_gbc = readIniSectionGbc(comboBoxPresets.Text);
+        // Get the full section name with monitor suffix
+        string presetName = comboBoxPresets.Text;
+        string fullSectionName = presetName + "__" + curDisp.displayName;
 
-        //curDisp.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", comboBoxPresets.Text));
-        //curDisp.monitorContrast = int.Parse(iniFile.Read("monitorContrast", comboBoxPresets.Text));
-        // ^^ we'll keep monitor brighness separate from gamma etc configs for now
+        // Read and apply gamma, brightness, and contrast settings
+        curDisp.ramp_gbc = readIniSectionGbc(fullSectionName);
 
+        // Set color source to Combined
         gammaSrc = GammaSrcColor.Combined;
         RenderCurInfo_ColorBtns();
         RenderCurInfo_GBC();
 
-        // loading preset gamma ramp means color-temp based ramp becomes invalid
-        ResetInfo_ColorTemp();
+        // Read and apply color temperature settings if they exist
+        string colorTempEnabledStr = iniFile.Read("colorTempEnabled", fullSectionName);
+        if (!string.IsNullOrEmpty(colorTempEnabledStr))
+        {
+            curDisp.colorTempEnabled = bool.Parse(colorTempEnabledStr);
+            
+            string colorTempBlendEnabledStr = iniFile.Read("colorTempBlendEnabled", fullSectionName);
+            if (!string.IsNullOrEmpty(colorTempBlendEnabledStr))
+            {
+                curDisp.colorTempBlendEnabled = bool.Parse(colorTempBlendEnabledStr);
+            }
+            
+            string colorTempStr = iniFile.Read("colorTemp", fullSectionName);
+            if (!string.IsNullOrEmpty(colorTempStr))
+            {
+                curDisp.colorTemp = int.Parse(colorTempStr, customCulture);
+            }
+            
+            RenderCurInfo_ColorTemp();
+            RenderTrackBars_FollowerInfo();
+        }
+        else
+        {
+            // If color temperature settings don't exist, reset to default
+            ResetInfo_ColorTemp();
+        }
 
-        // ResetInfo_Overlay();
-        // ^^ we'll keep overlay orthogonal from presets for nwo
+        // Read and apply overlay settings if they exist
+        string overlayEnabledStr = iniFile.Read("overlayEnabled", fullSectionName);
+        if (!string.IsNullOrEmpty(overlayEnabledStr))
+        {
+            curDisp.overlayEnabled = bool.Parse(overlayEnabledStr);
+            
+            string overlayEnforcedStr = iniFile.Read("overlayEnforced", fullSectionName);
+            if (!string.IsNullOrEmpty(overlayEnforcedStr))
+            {
+                curDisp.overlayEnforced = bool.Parse(overlayEnforcedStr);
+            }
+            
+            string ovTransparencyStr = iniFile.Read("ovTransparency", fullSectionName);
+            if (!string.IsNullOrEmpty(ovTransparencyStr))
+            {
+                curDisp.ovTransparency = float.Parse(ovTransparencyStr, customCulture);
+            }
+            
+            RenderCurInfo_Overlay();
+            curDisp.overlay.Update();
+        }
 
-        //ApplyCurMonitorBrightness();
+        // Update monitor information display
         RenderCurInfo_Monitors();
-        // ^^ we'll keep monitor brightness separate from presets, but we'll sync up to external brighness changes
 
-        // first lets set the gamma-ramp
+        // Apply the gamma ramp settings
         ApplyCurGammaRamp();
-
-        // next set the monitor brightness too
-        // .. but meh .. we're gonna disable this .. cleaner to avoid messing up monitor brightness just from picking gamma presets
-        //ApplyCurMonitorBrightness();
+        
+        // Save this as the active preset for this monitor
+        if (!string.IsNullOrEmpty(presetName))
+        {
+            SaveActivePreset(presetName);
+        }
     }
 
 
     private RampGbc readIniSectionGbc(string section)
     {
         var gbc = RampGbc.GetDefaultRampGbc();
-        gbc.Gamma.Red      = float.Parse(iniFile.Read("rGamma",    comboBoxPresets.Text), customCulture);
-        gbc.Gamma.Green    = float.Parse(iniFile.Read("gGamma",    comboBoxPresets.Text), customCulture);
-        gbc.Gamma.Blue     = float.Parse(iniFile.Read("bGamma",    comboBoxPresets.Text), customCulture);
-        gbc.Bright.Red     = float.Parse(iniFile.Read("rBright",   comboBoxPresets.Text), customCulture);
-        gbc.Bright.Green   = float.Parse(iniFile.Read("gBright",   comboBoxPresets.Text), customCulture);
-        gbc.Bright.Blue    = float.Parse(iniFile.Read("bBright",   comboBoxPresets.Text), customCulture);
-        gbc.Contrast.Red   = float.Parse(iniFile.Read("rContrast", comboBoxPresets.Text), customCulture);
-        gbc.Contrast.Green = float.Parse(iniFile.Read("gContrast", comboBoxPresets.Text), customCulture);
-        gbc.Contrast.Blue  = float.Parse(iniFile.Read("bContrast", comboBoxPresets.Text), customCulture);
+        
+        // Read gamma, brightness, and contrast settings if they exist
+        string rGamma = iniFile.Read("rGamma", section);
+        if (!string.IsNullOrEmpty(rGamma))
+            gbc.Gamma.Red = float.Parse(rGamma, customCulture);
+            
+        string gGamma = iniFile.Read("gGamma", section);
+        if (!string.IsNullOrEmpty(gGamma))
+            gbc.Gamma.Green = float.Parse(gGamma, customCulture);
+            
+        string bGamma = iniFile.Read("bGamma", section);
+        if (!string.IsNullOrEmpty(bGamma))
+            gbc.Gamma.Blue = float.Parse(bGamma, customCulture);
+            
+        string rBright = iniFile.Read("rBright", section);
+        if (!string.IsNullOrEmpty(rBright))
+            gbc.Bright.Red = float.Parse(rBright, customCulture);
+            
+        string gBright = iniFile.Read("gBright", section);
+        if (!string.IsNullOrEmpty(gBright))
+            gbc.Bright.Green = float.Parse(gBright, customCulture);
+            
+        string bBright = iniFile.Read("bBright", section);
+        if (!string.IsNullOrEmpty(bBright))
+            gbc.Bright.Blue = float.Parse(bBright, customCulture);
+            
+        string rContrast = iniFile.Read("rContrast", section);
+        if (!string.IsNullOrEmpty(rContrast))
+            gbc.Contrast.Red = float.Parse(rContrast, customCulture);
+            
+        string gContrast = iniFile.Read("gContrast", section);
+        if (!string.IsNullOrEmpty(gContrast))
+            gbc.Contrast.Green = float.Parse(gContrast, customCulture);
+            
+        string bContrast = iniFile.Read("bContrast", section);
+        if (!string.IsNullOrEmpty(bContrast))
+            gbc.Contrast.Blue = float.Parse(bContrast, customCulture);
+            
         return gbc;
     }
     private void writeInitSectionGbc()
     {
-        iniFile.Write ("rGamma",    curDisp.ramp_gbc.Gamma.Red      .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("gGamma",    curDisp.ramp_gbc.Gamma.Green    .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("bGamma",    curDisp.ramp_gbc.Gamma.Blue     .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("rContrast", curDisp.ramp_gbc.Bright.Red     .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("gContrast", curDisp.ramp_gbc.Bright.Green   .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("bContrast", curDisp.ramp_gbc.Bright.Blue    .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("rBright",   curDisp.ramp_gbc.Contrast.Red   .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("gBright",   curDisp.ramp_gbc.Contrast.Green .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("bBright",   curDisp.ramp_gbc.Contrast.Blue  .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        var sectionName = comboBoxPresets.Text + "__" + curDisp.displayName;
+        
+        // Write gamma, brightness, and contrast settings
+        iniFile.Write ("rGamma",    curDisp.ramp_gbc.Gamma.Red      .ToString("0.00", customCulture), sectionName);
+        iniFile.Write ("gGamma",    curDisp.ramp_gbc.Gamma.Green    .ToString("0.00", customCulture), sectionName);
+        iniFile.Write ("bGamma",    curDisp.ramp_gbc.Gamma.Blue     .ToString("0.00", customCulture), sectionName);
+        iniFile.Write ("rBright",   curDisp.ramp_gbc.Bright.Red     .ToString("0.00", customCulture), sectionName);
+        iniFile.Write ("gBright",   curDisp.ramp_gbc.Bright.Green   .ToString("0.00", customCulture), sectionName);
+        iniFile.Write ("bBright",   curDisp.ramp_gbc.Bright.Blue    .ToString("0.00", customCulture), sectionName);
+        iniFile.Write ("rContrast", curDisp.ramp_gbc.Contrast.Red   .ToString("0.00", customCulture), sectionName);
+        iniFile.Write ("gContrast", curDisp.ramp_gbc.Contrast.Green .ToString("0.00", customCulture), sectionName);
+        iniFile.Write ("bContrast", curDisp.ramp_gbc.Contrast.Blue  .ToString("0.00", customCulture), sectionName);
+        
+        // Write color temperature settings
+        iniFile.Write ("colorTempEnabled", curDisp.colorTempEnabled.ToString(), sectionName);
+        iniFile.Write ("colorTempBlendEnabled", curDisp.colorTempBlendEnabled.ToString(), sectionName);
+        iniFile.Write ("colorTemp", curDisp.colorTemp.ToString("0", customCulture), sectionName);
+        
+        // Write overlay settings
+        iniFile.Write ("overlayEnabled", curDisp.overlayEnabled.ToString(), sectionName);
+        iniFile.Write ("overlayEnforced", curDisp.overlayEnforced.ToString(), sectionName);
+        iniFile.Write ("ovTransparency", curDisp.ovTransparency.ToString("0.00", customCulture), sectionName);
     }
 
 
@@ -860,6 +1011,20 @@ public partial class Window : Form
             }
         }
         base.WndProc(ref m);
+    }
+
+    private void SaveActivePreset(string presetName)
+    {
+        // Save the active preset for the current monitor
+        string monitorSection = "ActivePresets";
+        iniFile.Write(curDisp.displayName, presetName, monitorSection);
+    }
+
+    private string GetActivePreset()
+    {
+        // Get the active preset for the current monitor
+        string monitorSection = "ActivePresets";
+        return iniFile.Read(curDisp.displayName, monitorSection);
     }
 }
 

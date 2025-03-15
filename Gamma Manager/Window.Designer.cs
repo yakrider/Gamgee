@@ -550,7 +550,7 @@ partial class Window
         // Window
         //
         this.Name = "Window";
-        this.Text = "Gamma Manager";
+        this.Text = "Gamgee";
         this.BackColor = BackgroundColor;
         this.AutoScaleMode = AutoScaleMode.Font;
         this.AutoScaleDimensions = new SizeF(12F, 25F);
