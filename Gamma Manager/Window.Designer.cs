@@ -135,7 +135,7 @@ partial class Window
         this.trackBarGamma.Minimum = 30;
         this.trackBarGamma.Maximum = 440;
         this.trackBarGamma.Value = 100;
-        this.trackBarGamma.ValueChanged += new EventHandler(this.trackBarGamma_ValueChanged);
+        this.trackBarGamma.ValueChanged += this.trackBarGamma_ValueChanged;
         //
         // trackBarBright
         //
@@ -146,7 +146,7 @@ partial class Window
         this.trackBarBright.Minimum = -100;
         this.trackBarBright.Maximum = 100;
         this.trackBarBright.Value = 0;
-        this.trackBarBright.ValueChanged += new EventHandler(this.trackBarBright_ValueChanged);
+        this.trackBarBright.ValueChanged += this.trackBarBright_ValueChanged;
         //
         // trackBarContrast
         //
@@ -157,7 +157,7 @@ partial class Window
         this.trackBarContrast.Minimum = 10;
         this.trackBarContrast.Maximum = 300;
         this.trackBarContrast.Value = 100;
-        this.trackBarContrast.ValueChanged += new EventHandler(this.trackBarContrast_ValueChanged);
+        this.trackBarContrast.ValueChanged += this.trackBarContrast_ValueChanged;
         //
         // trackBarColorTemp
         //
@@ -168,7 +168,7 @@ partial class Window
         this.trackBarColorTemp.Minimum = 32;
         this.trackBarColorTemp.Maximum = 89;
         this.trackBarColorTemp.Value = 65;
-        this.trackBarColorTemp.ValueChanged += new EventHandler(this.trackBarColorTemp_ValueChanged);
+        this.trackBarColorTemp.ValueChanged += this.trackBarColorTemp_ValueChanged;
         //
         // trackBarOverlay (dimming overlay transparency)
         //
@@ -179,7 +179,7 @@ partial class Window
         this.trackBarOverlay.Maximum = 100;
         this.trackBarOverlay.Minimum = 40;
         this.trackBarOverlay.Value = 100;
-        this.trackBarOverlay.ValueChanged += new EventHandler(this.trackBarOverlay_ValueChanged);
+        this.trackBarOverlay.ValueChanged += this.trackBarOverlay_ValueChanged;
 
         //
         // textBoxGamma
@@ -230,7 +230,7 @@ partial class Window
         this.checkBoxColorTemp.Location = new Point(x_btns1, checkBoxOffset + labelColorTemp.Location.Y);
         this.checkBoxColorTemp.AutoSize = true;
         this.checkBoxColorTemp.UseVisualStyleBackColor = true;
-        this.checkBoxColorTemp.CheckedChanged += new EventHandler(this.checkBoxColorTemp_CheckedChanged);
+        this.checkBoxColorTemp.CheckedChanged += this.checkBoxColorTemp_CheckedChanged;
         //
         // checkBoxColorTempBlend
         //
@@ -239,7 +239,7 @@ partial class Window
         this.checkBoxColorTempBlend.Location = new Point(10 + x_btns2, checkBoxOffset + labelColorTemp.Location.Y);
         this.checkBoxColorTempBlend.AutoSize = true;
         this.checkBoxColorTempBlend.UseVisualStyleBackColor = true;
-        this.checkBoxColorTempBlend.CheckedChanged += new EventHandler(this.checkBoxColorTempBlend_CheckedChanged);
+        this.checkBoxColorTempBlend.CheckedChanged += this.checkBoxColorTempBlend_CheckedChanged;
 
         //
         // checkBoxOverlay
@@ -249,7 +249,7 @@ partial class Window
         this.checkBoxOverlay.Location = new Point(x_btns1, checkBoxOffset + labelOverlay.Location.Y);
         this.checkBoxOverlay.AutoSize = true;
         this.checkBoxOverlay.UseVisualStyleBackColor = true;
-        this.checkBoxOverlay.CheckedChanged += new EventHandler(this.checkBoxOverlay_CheckedChanged);
+        this.checkBoxOverlay.CheckedChanged += this.checkBoxOverlay_CheckedChanged;
         //
         // checkBoxOverlayEnforced
         //
@@ -258,7 +258,7 @@ partial class Window
         this.checkBoxOverlayEnforced.Location = new Point(10 + x_btns2,  checkBoxOverlay.Location.Y);
         this.checkBoxOverlayEnforced.AutoSize = true;
         this.checkBoxOverlayEnforced.UseVisualStyleBackColor = true;
-        this.checkBoxOverlayEnforced.CheckedChanged += new EventHandler(this.checkBoxOverlayEnforced_CheckedChanged);
+        this.checkBoxOverlayEnforced.CheckedChanged += this.checkBoxOverlayEnforced_CheckedChanged;
 
         //
         // buttonAllColors
@@ -270,7 +270,9 @@ partial class Window
         this.buttonAllColors.TextAlign = ContentAlignment.MiddleCenter;
         this.buttonAllColors.Size = new Size(btns_w, 3*btns_h-5);
         this.buttonAllColors.UseVisualStyleBackColor = true;
-        this.buttonAllColors.Click += new EventHandler(this.buttonAllColors_Click);
+        this.buttonAllColors.MouseClick += this.buttonAllColors_Click;
+        // click only does lbtn, so we'll use separate mouse-down to get right-mouse-dwon (to escape)
+        this.buttonAllColors.MouseDown += this.buttonAllColors_MouseDown;
         //
         // buttonRed
         //
@@ -280,7 +282,7 @@ partial class Window
         this.buttonRed.TextAlign = ContentAlignment.TopCenter;
         this.buttonRed.Size = new Size(btns_w, btns_h);
         this.buttonRed.UseVisualStyleBackColor = true;
-        this.buttonRed.Click += new EventHandler(this.buttonRed_Click);
+        this.buttonRed.Click += this.buttonRed_Click;
         //
         // buttonGreen
         //
@@ -290,7 +292,7 @@ partial class Window
         this.buttonGreen.TextAlign = ContentAlignment.TopCenter;
         this.buttonGreen.Size = new Size(btns_w, btns_h);
         this.buttonGreen.UseVisualStyleBackColor = true;
-        this.buttonGreen.Click += new EventHandler(this.buttonGreen_Click);
+        this.buttonGreen.Click += this.buttonGreen_Click;
         //
         // buttonBlue
         //
@@ -300,7 +302,7 @@ partial class Window
         this.buttonBlue.TextAlign = ContentAlignment.TopCenter;
         this.buttonBlue.Size = new Size(btns_w, btns_h);
         this.buttonBlue.UseVisualStyleBackColor = true;
-        this.buttonBlue.Click += new EventHandler(this.buttonBlue_Click);
+        this.buttonBlue.Click += this.buttonBlue_Click;
 
         //
         // buttonResync
@@ -311,7 +313,7 @@ partial class Window
         this.buttonResync.TextAlign = ContentAlignment.TopCenter;
         this.buttonResync.Size = new Size(btns_w, btns_h);
         this.buttonResync.UseVisualStyleBackColor = true;
-        this.buttonResync.Click += new EventHandler(this.buttonResync_Click);
+        this.buttonResync.Click += this.buttonResync_Click;
         //
         // buttonReset
         //
@@ -321,7 +323,7 @@ partial class Window
         this.buttonReset.TextAlign = ContentAlignment.TopCenter;
         this.buttonReset.Size = new Size(btns_w, btns_h);
         this.buttonReset.UseVisualStyleBackColor = true;
-        this.buttonReset.Click += new EventHandler(this.buttonReset_Click);
+        this.buttonReset.Click += this.buttonReset_Click;
 
         //
         // comboBoxMonitors
@@ -332,7 +334,7 @@ partial class Window
         this.comboBoxMonitors.FormattingEnabled = true;
         this.comboBoxMonitors.DropDownStyle = ComboBoxStyle.DropDownList;
         this.comboBoxMonitors.PaletteMode = Krypton.Toolkit.PaletteMode.Office2010BlackDarkMode;
-        this.comboBoxMonitors.SelectedIndexChanged += new EventHandler(this.comboBoxMonitors_SelectedIndexChanged);
+        this.comboBoxMonitors.SelectedIndexChanged += this.comboBoxMonitors_SelectedIndexChanged;
         //
         // buttonForward
         //
@@ -342,7 +344,7 @@ partial class Window
         this.buttonForward.TextAlign = ContentAlignment.TopCenter;
         this.buttonForward.Size = new Size(30, 42);
         this.buttonForward.UseVisualStyleBackColor = true;
-        this.buttonForward.Click += new EventHandler(this.buttonForward_Click);
+        this.buttonForward.Click += this.buttonForward_Click;
         //
         // comboBoxPresets
         //
@@ -352,7 +354,7 @@ partial class Window
         this.comboBoxPresets.FormattingEnabled = true;
         this.comboBoxPresets.DropDownStyle = ComboBoxStyle.DropDown;
         this.comboBoxPresets.PaletteMode = Krypton.Toolkit.PaletteMode.Office2010BlackDarkMode;
-        this.comboBoxPresets.SelectedIndexChanged += new EventHandler(this.comboBoxPresets_SelectedIndexChanged);
+        this.comboBoxPresets.SelectedIndexChanged += this.comboBoxPresets_SelectedIndexChanged;
 
         //
         // labelMonitorBright
@@ -369,7 +371,7 @@ partial class Window
         this.trackBarMonitorBright.LargeChange = 1;
         this.trackBarMonitorBright.Maximum = 100;
         this.trackBarMonitorBright.Value = 100;
-        this.trackBarMonitorBright.ValueChanged += new EventHandler(this.trackBarMonitorBright_ValueChanged);
+        this.trackBarMonitorBright.ValueChanged += this.trackBarMonitorBright_ValueChanged;
         //
         // textBoxMonitorBright
         //
@@ -394,7 +396,7 @@ partial class Window
         this.trackBarMonitorContrast.LargeChange = 1;
         this.trackBarMonitorContrast.Maximum = 100;
         this.trackBarMonitorContrast.Value = 100;
-        this.trackBarMonitorContrast.ValueChanged += new EventHandler(this.trackBarMonitorContrast_ValueChanged);
+        this.trackBarMonitorContrast.ValueChanged += this.trackBarMonitorContrast_ValueChanged;
         //
         // textBoxMonitorContrast
         //
@@ -413,7 +415,7 @@ partial class Window
         this.buttonSave.TextAlign = ContentAlignment.TopCenter;
         this.buttonSave.Size = new Size(btns_w, btns_h);
         this.buttonSave.UseVisualStyleBackColor = true;
-        this.buttonSave.Click += new EventHandler(this.buttonSave_Click);
+        this.buttonSave.Click += this.buttonSave_Click;
         //
         // buttonDelete
         //
@@ -423,7 +425,7 @@ partial class Window
         this.buttonDelete.TextAlign = ContentAlignment.TopCenter;
         this.buttonDelete.Size = new Size(btns_w, btns_h);
         this.buttonDelete.UseVisualStyleBackColor = true;
-        this.buttonDelete.Click += new EventHandler(this.buttonDelete_Click);
+        this.buttonDelete.Click += this.buttonDelete_Click;
         //
         // buttonHide
         //
@@ -433,7 +435,7 @@ partial class Window
         this.buttonHide.TextAlign = ContentAlignment.MiddleCenter;
         this.buttonHide.Size = new Size(btns_w, 40);
         this.buttonHide.UseVisualStyleBackColor = true;
-        this.buttonHide.Click += new EventHandler(this.buttonHide_Click);
+        this.buttonHide.Click += this.buttonHide_Click;
         //
         // buttonExit
         //
@@ -443,7 +445,7 @@ partial class Window
         this.buttonExit.TextAlign = ContentAlignment.MiddleCenter;
         this.buttonExit.Size = new Size(btns_w, 40);
         this.buttonExit.UseVisualStyleBackColor = true;
-        this.buttonExit.Click += new EventHandler(this.buttonExit_Click);
+        this.buttonExit.Click += this.buttonExit_Click;
 
         //
         // pictureBox
@@ -458,7 +460,7 @@ partial class Window
         this.pictureBox.Size = new Size(380, 330);
         this.pictureBox.TabIndex = 28;
         this.pictureBox.TabStop = false;
-        this.pictureBox.MouseClick += new MouseEventHandler(this.pictureBox_Click);
+        this.pictureBox.MouseClick += this.pictureBox_Click;
 
         //
         // notifyIcon
@@ -466,7 +468,7 @@ partial class Window
         this.notifyIcon.Icon = ((Icon)(resources.GetObject("notifyIcon.Icon")));
         this.notifyIcon.Text = "Gamma Manager";
         this.notifyIcon.Visible = true;
-        this.notifyIcon.MouseClick += new MouseEventHandler (this.notifyIcon_Click);
+        this.notifyIcon.MouseClick += this.notifyIcon_Click;
         //
         // contextMenu
         //
@@ -560,12 +562,12 @@ partial class Window
         // .. which is fine by us as we're disabling showing it in taskbar anyway
         //
         this.KeyPreview = true;
-        this.KeyDown += new KeyEventHandler(this.Window_KeyDown);
-        this.Load += new EventHandler(this.Window_Load);
-        this.Resize += new EventHandler(this.Window_Resize);
-        this.Activated += new EventHandler(this.Window_Activated);
-        this.FormClosing += new FormClosingEventHandler(this.Window_FormClosing);
-        this.Paint += new PaintEventHandler(this.Window_Paint);
+        this.KeyDown += this.Window_KeyDown;
+        this.Load += this.Window_Load;
+        this.Resize += this.Window_Resize;
+        this.Activated += this.Window_Activated;
+        this.FormClosing += this.Window_FormClosing;
+        this.Paint += this.Window_Paint;
         // ^^ we use the Paint handler to draw a custom border ourselves on the content-panel inside-edge
 
         ((System.ComponentModel.ISupportInitialize)(this.trackBarGamma)).EndInit();

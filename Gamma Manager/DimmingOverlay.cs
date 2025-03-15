@@ -11,14 +11,14 @@ internal class DimmingOverlay
     private IntPtr hwnd;
     private IntPtr bgBrush;
     private IntPtr timerId;
-    private Display.DisplayInfo monitor;
+    private DisplayInfo monitor;
 
-    private static bool isClassRegistered = false;
+    private static bool isClassRegistered;
     private static WindowProc wndProcDelegate;
 
     private delegate IntPtr WindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
-    public DimmingOverlay(Display.DisplayInfo monitor)
+    public DimmingOverlay(DisplayInfo monitor)
     {
         this.monitor = monitor;
         bgBrush = CreateSolidBrush(0x000000);
@@ -130,9 +130,9 @@ internal class DimmingOverlay
     private void RegisterWindowClass()
     {
         // Create a static delegate that won't be garbage collected
-        wndProcDelegate = new WindowProc(WndProc);
+        wndProcDelegate = WndProc;
         
-        WNDCLASS wc = new WNDCLASS
+        var wc = new WNDCLASS
         {
             style = 0,
             lpfnWndProc = Marshal.GetFunctionPointerForDelegate(wndProcDelegate),
@@ -149,54 +149,6 @@ internal class DimmingOverlay
         RegisterClass(ref wc);
         // ^^ if its return bool indicates error .. err 1410 means the class was already registered .. maybe another instance running
     }
-
-
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr CreateWindowEx(int dwExStyle, string lpClassName, string lpWindowName, int dwStyle, int x, int y, int nWidth, int nHeight, IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
-
-    [DllImport("user32.dll")]
-    private static extern bool DestroyWindow(IntPtr hWnd);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr SetTimer(IntPtr hWnd, int nIDEvent, int uElapse, IntPtr lpTimerFunc);
-
-    [DllImport("user32.dll")]
-    private static extern bool KillTimer(IntPtr hWnd, IntPtr uIDEvent);
-
-    [DllImport("user32.dll")]
-    private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
-
-    [DllImport("user32.dll")]
-    private static extern bool SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-    [DllImport("user32.dll")]
-    private static extern bool UpdateWindow(IntPtr hWnd);
-
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateSolidBrush(int crColor);
-
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteObject(IntPtr hObject);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr DefWindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    private static extern ushort RegisterClass(ref WNDCLASS lpWndClass);
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr BeginPaint(IntPtr hWnd, out PAINTSTRUCT lpPaint);
-
-    [DllImport("user32.dll")]
-    private static extern bool EndPaint(IntPtr hWnd, ref PAINTSTRUCT lpPaint);
-
-    [DllImport("user32.dll")]
-    private static extern bool FillRect(IntPtr hdc, [In] ref RECT lprc, IntPtr hbr);
-
-    [DllImport("kernel32.dll")]
-    private static extern IntPtr GetModuleHandle(string lpModuleName);
-
 
     // Window styles and constants
     private const int WS_EX_LAYERED = 0x80000;
@@ -245,4 +197,52 @@ internal class DimmingOverlay
         public int Right;
         public int Bottom;
     }
+
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CreateWindowEx(int dwExStyle, string lpClassName, string lpWindowName, int dwStyle, int x, int y, int nWidth, int nHeight, IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool DestroyWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetTimer(IntPtr hWnd, int nIDEvent, int uElapse, IntPtr lpTimerFunc);
+
+    [DllImport("user32.dll")]
+    private static extern bool KillTimer(IntPtr hWnd, IntPtr uIDEvent);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, int hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool UpdateWindow(IntPtr hWnd);
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateSolidBrush(int crColor);
+
+    [DllImport("gdi32.dll")]
+    private static extern bool DeleteObject(IntPtr hObject);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr DefWindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern ushort RegisterClass(ref WNDCLASS lpWndClass);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr BeginPaint(IntPtr hWnd, out PAINTSTRUCT lpPaint);
+
+    [DllImport("user32.dll")]
+    private static extern bool EndPaint(IntPtr hWnd, ref PAINTSTRUCT lpPaint);
+
+    [DllImport("user32.dll")]
+    private static extern bool FillRect(IntPtr hdc, [In] ref RECT lprc, IntPtr hbr);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+
 }

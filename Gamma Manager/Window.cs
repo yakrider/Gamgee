@@ -6,14 +6,9 @@ using System.Windows.Forms;
 
 namespace Gamma_Manager;
 
+
 public partial class Window : Form
 {
-    System.Globalization.CultureInfo customCulture;
-    IniFile iniFile;
-
-    List<Display.DisplayInfo> displays = [];
-    int numDisplay = 0;
-    Display.DisplayInfo curDisplay;
 
     public enum GammaSrcColor
     {
@@ -28,6 +23,13 @@ public partial class Window : Form
         Bright,
         Contrast
     }
+
+
+    System.Globalization.CultureInfo customCulture;
+    IniFile iniFile;
+    List<DisplayInfo> displays = [];
+    DisplayInfo curDisp;
+    int numDisplay;
 
     private bool disableChangeFunc = false;
     private GammaSrcColor gammaSrc = GammaSrcColor.Combined;
@@ -52,7 +54,7 @@ public partial class Window : Form
         comboBoxPresets.Text = string.Empty;
         foreach (var preset in iniFile.GetSections())
         {
-            if (iniFile.Read("monitor", preset).Equals(curDisplay.displayName))
+            if (iniFile.Read("monitor", preset).Equals(curDisp.displayName))
             {
                 comboBoxPresets.Items.Add(preset);
             }
@@ -77,11 +79,12 @@ public partial class Window : Form
         setFontStyle (buttonAllColors, GammaSrcColor.Combined);
     }
 
+
     private void ResetInfo_GBC()
     {
         gammaSrc = GammaSrcColor.Combined;
-        curDisplay.ramp_gbc = RampGbc.GetDefaultRampGbc();
-        Gamma.ResetGammaRamp(curDisplay.displayLink);
+        curDisp.ramp_gbc = RampGbc.GetDefaultRampGbc();
+        Gamma.ResetGammaRamp(curDisp.displayLink);
         RenderCurInfo_ColorBtns();
         RenderCurInfo_GBC();
     }
@@ -90,9 +93,9 @@ public partial class Window : Form
         disableChangeFunc = true;
 
         var (gamma, bright, contrast) = (
-            curDisplay.ramp_gbc.Gamma.get(gammaSrc),
-            curDisplay.ramp_gbc.Bright.get(gammaSrc),
-            curDisplay.ramp_gbc.Contrast.get(gammaSrc)
+            curDisp.ramp_gbc.Gamma.get(gammaSrc),
+            curDisp.ramp_gbc.Bright.get(gammaSrc),
+            curDisp.ramp_gbc.Contrast.get(gammaSrc)
         );
         trackBarGamma.Value = (int)(100f * gamma);
         textBoxGamma.Text = gamma.ToString("0.00");
@@ -106,10 +109,11 @@ public partial class Window : Form
         disableChangeFunc = false;
     }
 
+
     private void ResetInfo_ColorTemp()
     {
-        curDisplay.colorTempEnabled = false;
-        curDisplay.colorTemp = 6500;
+        curDisp.colorTempEnabled = false;
+        curDisp.colorTemp = 6500;
         RenderCurInfo_ColorTemp();
         RenderTrackBars_FollowerInfo();
     }
@@ -117,18 +121,19 @@ public partial class Window : Form
     {
         if (displays.Count <= 0) return;
         disableChangeFunc = true;
-        checkBoxColorTemp.Checked = curDisplay.colorTempEnabled;
-        checkBoxColorTempBlend.Checked = curDisplay.colorTempBlendEnabled;
-        trackBarColorTemp.Value = (int)(curDisplay.colorTemp / 100f);
-        textBoxColorTemp.Text = (curDisplay.colorTemp / 1000f).ToString("0.00");
+        checkBoxColorTemp.Checked = curDisp.colorTempEnabled;
+        checkBoxColorTempBlend.Checked = curDisp.colorTempBlendEnabled;
+        trackBarColorTemp.Value = (int)(curDisp.colorTemp / 100f);
+        textBoxColorTemp.Text = (curDisp.colorTemp / 1000f).ToString("0.00");
         disableChangeFunc = false;
     }
 
+
     private void RenderTrackBars_FollowerInfo()
     {
-        trackBarColorTemp.IsFollower = !curDisplay.colorTempEnabled;
+        trackBarColorTemp.IsFollower = !curDisp.colorTempEnabled;
         trackBarGamma.IsFollower = trackBarBright.IsFollower = trackBarContrast.IsFollower =
-            (curDisplay.colorTempEnabled && !curDisplay.colorTempBlendEnabled);
+            (curDisp.colorTempEnabled && !curDisp.colorTempBlendEnabled);
         InvalidateTrackBars();
     }
     private void InvalidateTrackBars()
@@ -139,29 +144,31 @@ public partial class Window : Form
         trackBarColorTemp.Invalidate();
     }
 
+
     private void ResetInfo_Overlay()
     {
-        curDisplay.ovTransparency = 1.0f;
-        curDisplay.overlayEnforced = false;
-        curDisplay.overlay.Update();
+        curDisp.ovTransparency = 1.0f;
+        curDisp.overlayEnforced = false;
+        curDisp.overlay.Update();
         RenderCurInfo_Overlay();;
     }
     private void RenderCurInfo_Overlay()
     {
         if (displays.Count <= 0) return;
         disableChangeFunc = true;
-        checkBoxOverlay.Checked = curDisplay.overlayEnabled;
-        trackBarOverlay.Value = (int)(100f * curDisplay.ovTransparency);
-        textBoxOverlay.Text = curDisplay.ovTransparency.ToString("0.00");
+        checkBoxOverlay.Checked = curDisp.overlayEnabled;
+        trackBarOverlay.Value = (int)(100f * curDisp.ovTransparency);
+        textBoxOverlay.Text = curDisp.ovTransparency.ToString("0.00");
         disableChangeFunc = false;
     }
+
 
     private void ResetInfo_Monitors()
     {
         // here we could directly update/reset monitor values
         // (but typically we should seldom want to do so)
         trackBarMonitorBright.Value = 100;
-        if (curDisplay.isExternal) {
+        if (curDisp.isExternal) {
             trackBarMonitorContrast.Value = 50;
         }
     }
@@ -169,17 +176,17 @@ public partial class Window : Form
     {
         disableChangeFunc = true;
 
-        trackBarMonitorBright.Value = curDisplay.isExternal ?
-            ExternalMonitor.GetBrightness(curDisplay.PhysicalHandle) : InternalMonitor.GetBrightness();
+        trackBarMonitorBright.Value = curDisp.isExternal ?
+            Display.External.GetBrightness(curDisp.PhysicalHandle) : Display.Internal.GetBrightness();
         textBoxMonitorBright.Text  = trackBarMonitorBright.Value.ToString();
 
-        var numDispStr = (1 + curDisplay.numDisplay).ToString("0");
+        var numDispStr = (1 + curDisp.numDisplay).ToString("0");
         labelMonitorBright.Text   = numDispStr + ": Bright";
         labelMonitorContrast.Text = numDispStr + ": Contrast";
 
-        if (curDisplay.isExternal) {
+        if (curDisp.isExternal) {
             trackBarMonitorContrast.Enabled = textBoxMonitorContrast.Enabled = true;
-            trackBarMonitorContrast.Value = ExternalMonitor.GetContrast(curDisplay.PhysicalHandle);
+            trackBarMonitorContrast.Value = Display.External.GetContrast(curDisp.PhysicalHandle);
         } else {
             trackBarMonitorContrast.Enabled = textBoxMonitorContrast.Enabled = false;
             trackBarMonitorContrast.Value = 50;
@@ -187,22 +194,32 @@ public partial class Window : Form
         textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
         disableChangeFunc = false;
     }
+    private void ApplyCurMonitorBrightness()
+    {
+        // we'll just change the track-bar values, and its change listener will affect the change
+        if (curDisp.isExternal) {
+            trackBarMonitorBright.Value = curDisp.monitorBrightness;
+            trackBarMonitorContrast.Value = curDisp.monitorContrast;
+        } else {
+            trackBarMonitorBright.Value = curDisp.monitorBrightness;
+        }
+    }
 
 
 
 
     private void ApplyCurGammaRamp()
     {
-        //Gamma.SetGammaRamp (curDisplay.displayLink, Gamma.CreateGammaRamp(curDisplay.ramp_gbc));
+        //Gamma.SetGammaRamp (curDisp.displayLink, Gamma.CreateGammaRamp(curDisp.ramp_gbc));
 
-        var (gbc, temp) = (curDisplay.colorTempEnabled, curDisplay.colorTempBlendEnabled) switch
+        var (gbc, temp) = (curDisp.colorTempEnabled, curDisp.colorTempBlendEnabled) switch
         {
-            (true,  true) => (curDisplay.ramp_gbc, curDisplay.colorTemp),
-            (true, false) => (RampGbc.GetDefaultRampGbc(), curDisplay.colorTemp),
-            (false,    _) => (curDisplay.ramp_gbc, 6500)
+            (true,  true) => (curDisp.ramp_gbc, curDisp.colorTemp),
+            (true, false) => (RampGbc.GetDefaultRampGbc(), curDisp.colorTemp),
+            (false,    _) => (curDisp.ramp_gbc, 6500)
         };
 
-        var success = Gamma.SetGammaRamp_ColorTemp_Blend (curDisplay.displayLink, gbc, temp);
+        var success = Gamma.SetGammaRamp_ColorTemp_Blend (curDisp.displayLink, gbc, temp);
 
         if (gaammaErrState != !success) {
             gaammaErrState = !success;
@@ -210,25 +227,15 @@ public partial class Window : Form
         }
         RenderCurInfo_Monitors();
     }
-    private void ApplyCurMonitorBrightness()
-    {
-        // we'll just change the track-bar values, and its change listener will affect the change
-        if (curDisplay.isExternal) {
-            trackBarMonitorBright.Value = curDisplay.monitorBrightness;
-            trackBarMonitorContrast.Value = curDisplay.monitorContrast;
-        } else {
-            trackBarMonitorBright.Value = curDisplay.monitorBrightness;
-        }
-    }
 
     private void ResyncGammaRampValues()
     {
         if (displays.Count <= 0) return;
         // we'll attempt to read gamma-ramp and reverse calc the approx values to set the track-bar
         buttonResync.Enabled = false;
-        var gbc = Gamma.InverseGammaRamp (Gamma.GetGammaRamp(curDisplay.displayLink));
+        var gbc = Gamma.InverseGammaRamp (Gamma.GetGammaRamp(curDisp.displayLink));
 
-        curDisplay.ramp_gbc = new RampGbc (
+        curDisp.ramp_gbc = new RampGbc (
             new RampGbcRgb (gbc[0], gbc[0], gbc[0]),
             new RampGbcRgb (gbc[1], gbc[1], gbc[1]),
             new RampGbcRgb (gbc[2], gbc[2], gbc[2])
@@ -272,7 +279,7 @@ public partial class Window : Form
             displays[i].numDisplay = i;
             comboBoxMonitors.Items.Add(i + 1 + ": " + displays[i].displayName);
         }
-        curDisplay = displays[numDisplay];
+        curDisp = displays[numDisplay];
         comboBoxMonitors.SelectedIndex = numDisplay;
 
         // instead of reset, we'll try to resync to existant gamma ramp at startup
@@ -295,22 +302,22 @@ public partial class Window : Form
         switch (track)
         {
             case GBC.Gamma:
-                curDisplay.ramp_gbc.Gamma .set (gammaSrc, trackBarGamma.Value / 100f);
+                curDisp.ramp_gbc.Gamma .set (gammaSrc, trackBarGamma.Value / 100f);
                 textBoxGamma.Text = (trackBarGamma.Value / 100f).ToString("0.00");
                 break;
             case GBC.Bright:
-                curDisplay.ramp_gbc.Bright .set (gammaSrc, trackBarBright.Value / 100f);
+                curDisp.ramp_gbc.Bright .set (gammaSrc, trackBarBright.Value / 100f);
                 textBoxBright.Text = (trackBarBright.Value / 100f).ToString("0.00");
                 break;
             case GBC.Contrast:
-                curDisplay.ramp_gbc.Contrast .set (gammaSrc, trackBarContrast.Value / 100f);
+                curDisp.ramp_gbc.Contrast .set (gammaSrc, trackBarContrast.Value / 100f);
                 textBoxContrast.Text = (trackBarContrast.Value / 100f).ToString("0.00");
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(track), track, null);
         }
 
-        if (!curDisplay.colorTempBlendEnabled)
+        if (!curDisp.colorTempBlendEnabled)
             ResetInfo_ColorTemp();
 
         RenderCurInfo_ColorTemp();
@@ -338,13 +345,13 @@ public partial class Window : Form
         //comboBoxPresets.Text = string.Empty;
         if (disableChangeFunc) return;
 
-        curDisplay.monitorBrightness = trackBarMonitorBright.Value;
+        curDisp.monitorBrightness = trackBarMonitorBright.Value;
         textBoxMonitorBright.Text = trackBarMonitorBright.Value.ToString();
 
-        if (curDisplay.isExternal) {
-            ExternalMonitor.SetBrightness(curDisplay.PhysicalHandle, (uint)trackBarMonitorBright.Value);
+        if (curDisp.isExternal) {
+            Display.External.SetBrightness(curDisp.PhysicalHandle, (uint)trackBarMonitorBright.Value);
         } else {
-            InternalMonitor.SetBrightness((byte)trackBarMonitorBright.Value);
+            Display.Internal.SetBrightness((byte)trackBarMonitorBright.Value);
         }
     }
     private void trackBarMonitorContrast_ValueChanged(object sender, EventArgs e)
@@ -352,10 +359,12 @@ public partial class Window : Form
         //comboBoxPresets.Text = string.Empty;
         if (disableChangeFunc) return;
 
-        curDisplay.monitorContrast = trackBarMonitorContrast.Value;
+        curDisp.monitorContrast = trackBarMonitorContrast.Value;
         textBoxMonitorContrast.Text = trackBarMonitorContrast.Value.ToString();
 
-        ExternalMonitor.SetContrast(curDisplay.PhysicalHandle, (uint)trackBarMonitorContrast.Value);
+        if (curDisp.isExternal) {
+            Display.External.SetContrast(curDisp.PhysicalHandle, (uint)trackBarMonitorContrast.Value);
+        }
     }
 
 
@@ -367,9 +376,9 @@ public partial class Window : Form
         if (disableChangeFunc) return;
 
         // as soon as we change color-temp slider, its enabled (and we set gbc to follower mode)
-        curDisplay.colorTempEnabled = true;
+        curDisp.colorTempEnabled = true;
         checkBoxColorTemp.Checked = true;
-        curDisplay.colorTemp = trackBarColorTemp.Value * 100;
+        curDisp.colorTemp = trackBarColorTemp.Value * 100;
         textBoxColorTemp.Text = (trackBarColorTemp.Value / 10f).ToString("0.00");
         RenderTrackBars_FollowerInfo();
         ApplyCurGammaRamp();
@@ -377,16 +386,16 @@ public partial class Window : Form
     private void checkBoxColorTemp_CheckedChanged(object sender, EventArgs e)
     {
         if (disableChangeFunc) return;
-        curDisplay.colorTempEnabled = checkBoxColorTemp.Checked;
+        curDisp.colorTempEnabled = checkBoxColorTemp.Checked;
         RenderTrackBars_FollowerInfo();
         ApplyCurGammaRamp();
     }
     private void checkBoxColorTempBlend_CheckedChanged(object sender, EventArgs e)
     {
         if (disableChangeFunc) return;
-        curDisplay.colorTempBlendEnabled = checkBoxColorTempBlend.Checked;
+        curDisp.colorTempBlendEnabled = checkBoxColorTempBlend.Checked;
         RenderTrackBars_FollowerInfo();
-        if (curDisplay.colorTempEnabled) {
+        if (curDisp.colorTempEnabled) {
             ApplyCurGammaRamp();
         }
     }
@@ -398,37 +407,45 @@ public partial class Window : Form
     {
         if (disableChangeFunc) return;
         // ^^ e.g. from trackbar value update upon changing monitor selection
-        curDisplay.ovTransparency = trackBarOverlay.Value / 100f;
+        curDisp.ovTransparency = trackBarOverlay.Value / 100f;
         textBoxOverlay.Text = (trackBarOverlay.Value / 100f).ToString("0.00");
-        curDisplay.overlay.Update();
+        curDisp.overlay.Update();
         RenderCurInfo_Monitors();
     }
     private void checkBoxOverlay_CheckedChanged(object sender, EventArgs e)
     {
         if (disableChangeFunc) return;
-        curDisplay.overlayEnabled  = checkBoxOverlay.Checked;
+        curDisp.overlayEnabled  = checkBoxOverlay.Checked;
         trackBarOverlay.IsFollower = !checkBoxOverlay.Checked;
         trackBarOverlay.Invalidate();
         checkBoxOverlayEnforced.Enabled = checkBoxOverlay.Checked;
         checkBoxOverlayEnforced.Invalidate();
-        curDisplay.overlay.Update();
+        curDisp.overlay.Update();
         RenderCurInfo_Monitors();
     }
     private void checkBoxOverlayEnforced_CheckedChanged(object sender, EventArgs e)
     {
         if (disableChangeFunc) return;
-        curDisplay.overlayEnforced = checkBoxOverlayEnforced.Checked;
-        curDisplay.overlay.Update();
+        curDisp.overlayEnforced = checkBoxOverlayEnforced.Checked;
+        curDisp.overlay.Update();
         RenderCurInfo_Monitors();
     }
 
 
 
-    private void buttonAllColors_Click(object sender, EventArgs e)
+
+
+    private void buttonAllColors_Click(object sender, MouseEventArgs e)
     {
         gammaSrc = GammaSrcColor.Combined;
         RenderCurInfo_ColorBtns();
         RenderCurInfo_GBC();
+    }
+    private void buttonAllColors_MouseDown(object sender, MouseEventArgs e)
+    {
+        // rbtn click on the big btn can be used to hide window
+        if (e.Button == MouseButtons.Right)
+            Hide();
     }
     private void buttonRed_Click(object sender, EventArgs e)
     {
@@ -449,6 +466,8 @@ public partial class Window : Form
         RenderCurInfo_GBC();
     }
 
+
+
     private void buttonResync_Click(object sender, EventArgs e)
     {
         gammaSrc = GammaSrcColor.Combined;
@@ -465,30 +484,28 @@ public partial class Window : Form
         ResetInfo_GBC();
         ResetInfo_ColorTemp();
         ResetInfo_Overlay();
-
         //ResetInfo_Monitors();
         // ^^ we'd rather have nothing touch physical monitor brightness .. not even the reset click !!
-
         initPresets();
     }
+
+
 
     private void buttonSave_Click(object sender, EventArgs e)
     {
         var tmp = comboBoxPresets.Text;
-        iniFile.Write ("monitor", curDisplay.displayName, curDisplay.displayName+": "+ comboBoxPresets.Text);
+        iniFile.Write ("monitor", curDisp.displayName, curDisp.displayName+": "+ comboBoxPresets.Text);
         writeInitSectionGbc();
-        //iniFile.Write("monitorBrightness", curDisplay.monitorBrightness.ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-        //iniFile.Write("monitorContrast", curDisplay.monitorContrast.ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
+        //iniFile.Write("monitorBrightness", curDisp.monitorBrightness.ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        //iniFile.Write("monitorContrast", curDisp.monitorContrast.ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
         // ^^ we'll keep monitor brighness separate from gamma etc configs for now
-
         initPresets();
-        comboBoxPresets.Text = curDisplay.displayName + ": " + tmp;
+        comboBoxPresets.Text = curDisp.displayName + ": " + tmp;
     }
 
     private void buttonDelete_Click(object sender, EventArgs e)
     {
         iniFile.DeleteSection(comboBoxPresets.Text);
-
         initPresets();
     }
 
@@ -502,6 +519,8 @@ public partial class Window : Form
         Close();
     }
 
+
+
     private void pictureBox_Click(object sender, MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Right)
@@ -510,13 +529,15 @@ public partial class Window : Form
         }
     }
 
+
+
     private void comboBoxMonitors_SelectedIndexChanged(object sender, EventArgs e)
     {
         var num = comboBoxMonitors.SelectedItem.ToString();
 
         num = num.Substring(0, num.IndexOf(":"));
         numDisplay = int.Parse(num)-1;
-        curDisplay = displays[numDisplay];
+        curDisp = displays[numDisplay];
 
         // monitor changing shouldnt mean any active action, just to update UI with data for the selected monitor
         //RenderCurInfo_ColorBtns();
@@ -538,41 +559,14 @@ public partial class Window : Form
         }
     }
 
-    private RampGbc readIniSectionGbc(string section)
-    {
-        var gbc = RampGbc.GetDefaultRampGbc();
-        gbc.Gamma.Red      = float.Parse(iniFile.Read("rGamma",    comboBoxPresets.Text), customCulture);
-        gbc.Gamma.Green    = float.Parse(iniFile.Read("gGamma",    comboBoxPresets.Text), customCulture);
-        gbc.Gamma.Blue     = float.Parse(iniFile.Read("bGamma",    comboBoxPresets.Text), customCulture);
-        gbc.Bright.Red     = float.Parse(iniFile.Read("rBright",   comboBoxPresets.Text), customCulture);
-        gbc.Bright.Green   = float.Parse(iniFile.Read("gBright",   comboBoxPresets.Text), customCulture);
-        gbc.Bright.Blue    = float.Parse(iniFile.Read("bBright",   comboBoxPresets.Text), customCulture);
-        gbc.Contrast.Red   = float.Parse(iniFile.Read("rContrast", comboBoxPresets.Text), customCulture);
-        gbc.Contrast.Green = float.Parse(iniFile.Read("gContrast", comboBoxPresets.Text), customCulture);
-        gbc.Contrast.Blue  = float.Parse(iniFile.Read("bContrast", comboBoxPresets.Text), customCulture);
-        return gbc;
-    }
-    private void writeInitSectionGbc()
-    {
-        iniFile.Write ("rGamma",    curDisplay.ramp_gbc.Gamma.Red      .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("gGamma",    curDisplay.ramp_gbc.Gamma.Green    .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("bGamma",    curDisplay.ramp_gbc.Gamma.Blue     .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("rContrast", curDisplay.ramp_gbc.Bright.Red     .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("gContrast", curDisplay.ramp_gbc.Bright.Green   .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("bContrast", curDisplay.ramp_gbc.Bright.Blue    .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("rBright",   curDisplay.ramp_gbc.Contrast.Red   .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("gBright",   curDisplay.ramp_gbc.Contrast.Green .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-        iniFile.Write ("bBright",   curDisplay.ramp_gbc.Contrast.Blue  .ToString(customCulture), curDisplay.displayName + ": " + comboBoxPresets.Text);
-    }
-
     private void comboBoxPresets_SelectedIndexChanged(object sender, EventArgs e)
     {
         if (disableChangeFunc) return;
 
-        curDisplay.ramp_gbc = readIniSectionGbc(comboBoxPresets.Text);
+        curDisp.ramp_gbc = readIniSectionGbc(comboBoxPresets.Text);
 
-        //curDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", comboBoxPresets.Text));
-        //curDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", comboBoxPresets.Text));
+        //curDisp.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", comboBoxPresets.Text));
+        //curDisp.monitorContrast = int.Parse(iniFile.Read("monitorContrast", comboBoxPresets.Text));
         // ^^ we'll keep monitor brighness separate from gamma etc configs for now
 
         gammaSrc = GammaSrcColor.Combined;
@@ -597,7 +591,37 @@ public partial class Window : Form
         //ApplyCurMonitorBrightness();
     }
 
-    //tray
+
+    private RampGbc readIniSectionGbc(string section)
+    {
+        var gbc = RampGbc.GetDefaultRampGbc();
+        gbc.Gamma.Red      = float.Parse(iniFile.Read("rGamma",    comboBoxPresets.Text), customCulture);
+        gbc.Gamma.Green    = float.Parse(iniFile.Read("gGamma",    comboBoxPresets.Text), customCulture);
+        gbc.Gamma.Blue     = float.Parse(iniFile.Read("bGamma",    comboBoxPresets.Text), customCulture);
+        gbc.Bright.Red     = float.Parse(iniFile.Read("rBright",   comboBoxPresets.Text), customCulture);
+        gbc.Bright.Green   = float.Parse(iniFile.Read("gBright",   comboBoxPresets.Text), customCulture);
+        gbc.Bright.Blue    = float.Parse(iniFile.Read("bBright",   comboBoxPresets.Text), customCulture);
+        gbc.Contrast.Red   = float.Parse(iniFile.Read("rContrast", comboBoxPresets.Text), customCulture);
+        gbc.Contrast.Green = float.Parse(iniFile.Read("gContrast", comboBoxPresets.Text), customCulture);
+        gbc.Contrast.Blue  = float.Parse(iniFile.Read("bContrast", comboBoxPresets.Text), customCulture);
+        return gbc;
+    }
+    private void writeInitSectionGbc()
+    {
+        iniFile.Write ("rGamma",    curDisp.ramp_gbc.Gamma.Red      .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("gGamma",    curDisp.ramp_gbc.Gamma.Green    .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("bGamma",    curDisp.ramp_gbc.Gamma.Blue     .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("rContrast", curDisp.ramp_gbc.Bright.Red     .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("gContrast", curDisp.ramp_gbc.Bright.Green   .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("bContrast", curDisp.ramp_gbc.Bright.Blue    .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("rBright",   curDisp.ramp_gbc.Contrast.Red   .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("gBright",   curDisp.ramp_gbc.Contrast.Green .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+        iniFile.Write ("bBright",   curDisp.ramp_gbc.Contrast.Blue  .ToString(customCulture), curDisp.displayName + ": " + comboBoxPresets.Text);
+    }
+
+
+
+
     private void Window_Resize(object sender, EventArgs e)
     {
         if (WindowState == FormWindowState.Minimized) {
@@ -642,6 +666,7 @@ public partial class Window : Form
         TopMost = true;
         WindowState = FormWindowState.Normal;
     }
+
 
 
 
@@ -697,6 +722,7 @@ public partial class Window : Form
             }
         }
     }
+
 
 }
 
