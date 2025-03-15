@@ -466,8 +466,7 @@ partial class Window
         this.notifyIcon.Icon = ((Icon)(resources.GetObject("notifyIcon.Icon")));
         this.notifyIcon.Text = "Gamma Manager";
         this.notifyIcon.Visible = true;
-        this.notifyIcon.MouseClick       += new MouseEventHandler (this.notifyIcon_Click);
-        this.notifyIcon.MouseDoubleClick += new MouseEventHandler (this.notifyIcon_DoubleClick);
+        this.notifyIcon.MouseClick += new MouseEventHandler (this.notifyIcon_Click);
         //
         // contextMenu
         //
@@ -481,7 +480,6 @@ partial class Window
         // Apparently not straight-forward to customize full form's border itself..
         // so instead, we'll put all content in a panel, then paint a border on the panel inside-edge ourselves
         //
-        //this.ClientSize = new Size(1196, 390);
         this.ClientSize = new Size(x_img, 36 + trackBarOffset + labelMonitorContrast.Location.Y + topOffset);
         // ^^ but since we anchor to dimensions, we'll set the full window dims first
         //

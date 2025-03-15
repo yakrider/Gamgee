@@ -15,9 +15,6 @@ public partial class Window : Form
     int numDisplay = 0;
     Display.DisplayInfo curDisplay;
 
-    List<ToolStripComboBox> toolMonitors = [];
-    ToolStripComboBox toolMonitor;
-
     public enum GammaSrcColor
     {
         Combined = 0,
@@ -62,45 +59,6 @@ public partial class Window : Form
         }
     }
 
-
-
-    private void initTrayMenu()
-    {
-        contextMenu.Items.Clear();
-        toolMonitors.Clear();
-
-        var toolSetting = new ToolStripMenuItem("Settings", null, toolSettings_Click);
-        contextMenu.Items.Add(toolSetting);
-
-        var toolStripSeparator1 = new ToolStripSeparator();
-        contextMenu.Items.Add(toolStripSeparator1);
-
-        foreach (var display in displays)
-        {
-            toolMonitor = new ToolStripComboBox(display.displayName);
-            toolMonitor.DropDownStyle = ComboBoxStyle.DropDownList;
-
-            toolMonitor.Items.Add(display.displayName + ":");
-            toolMonitor.Text = display.displayName + ":";
-
-            toolMonitor.SelectedIndexChanged += comboBoxToolMonitor_IndexChanged;
-
-            foreach (var preset in iniFile.GetSections())
-            {
-                if (iniFile.Read("monitor", preset).Equals(display.displayName))
-                {
-                    //preset.name = preset.Substring(preset.IndexOf(":") + 1);
-                    toolMonitor.Items.Add(preset);
-                }
-            }
-            toolMonitors.Add(toolMonitor);
-            contextMenu.Items.Add(toolMonitor);
-        }
-        var toolStripSeparator2 = new ToolStripSeparator();
-        contextMenu.Items.Add(toolStripSeparator2);
-        var toolExit = new ToolStripMenuItem("Exit", null, toolExit_Click);
-        contextMenu.Items.Add(toolExit);
-    }
 
 
 
@@ -295,12 +253,10 @@ public partial class Window : Form
     {
         InitializeComponent();
 
-        ApplyDarkMode(this);
-        // ^^ we'll ourselves apply dark colors to the winforms default components we use
+        EnableDarkMode();
 
-        EnableDarkMode(); // Enable dark mode
-        // ^^ this is system wide dark-mode to mostly helps with titlebar etc
-        // (but we no longer show titlebar at all, so not that important anymore)
+        // no tray menu, we'll just invoke our lil app window upon any tray-icon interaction
+        notifyIcon.ContextMenuStrip = null;
 
         customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
         customCulture.NumberFormat.NumberDecimalSeparator = ",";
@@ -326,8 +282,6 @@ public partial class Window : Form
         ResetInfo_Overlay();
         ResyncGammaRampValues();
         initPresets();
-        initTrayMenu();
-        notifyIcon.ContextMenuStrip = contextMenu;
     }
 
 
@@ -516,7 +470,6 @@ public partial class Window : Form
         // ^^ we'd rather have nothing touch physical monitor brightness .. not even the reset click !!
 
         initPresets();
-        initTrayMenu();
     }
 
     private void buttonSave_Click(object sender, EventArgs e)
@@ -530,8 +483,6 @@ public partial class Window : Form
 
         initPresets();
         comboBoxPresets.Text = curDisplay.displayName + ": " + tmp;
-
-        initTrayMenu();
     }
 
     private void buttonDelete_Click(object sender, EventArgs e)
@@ -539,7 +490,6 @@ public partial class Window : Form
         iniFile.DeleteSection(comboBoxPresets.Text);
 
         initPresets();
-        initTrayMenu();
     }
 
     private void buttonHide_Click(object sender, EventArgs e)
@@ -625,8 +575,6 @@ public partial class Window : Form
         //curDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", comboBoxPresets.Text));
         // ^^ we'll keep monitor brighness separate from gamma etc configs for now
 
-        initTrayMenu();
-
         gammaSrc = GammaSrcColor.Combined;
         RenderCurInfo_ColorBtns();
         RenderCurInfo_GBC();
@@ -689,200 +637,86 @@ public partial class Window : Form
 
     private void notifyIcon_Click(object sender, MouseEventArgs e)
     {
+        // Show the window on any mouse click (left or right)
         Show();
         TopMost = true;
         WindowState = FormWindowState.Normal;
     }
-    private void notifyIcon_DoubleClick(object sender, MouseEventArgs e)
+
+
+
+    private void EnableDarkMode()
     {
-        Show();
-        TopMost = true;
-        WindowState = FormWindowState.Normal;
-    }
-    private void toolSettings_Click(object sender, EventArgs e)
-    {
-        Show();
-        TopMost = true;
-        WindowState = FormWindowState.Normal;
-    }
-    private void toolExit_Click(object sender, EventArgs e)
-    {
-        FormClosing -= Window_FormClosing;
-        Close();
-    }
+        // first we'll set system level dark-mode .. to things like titlebar etc
+        // (though we no longer show titlebar at all, so its less important now)
 
+        NativeMethods.SetPreferredAppMode (NativeMethods.PREFERRED_APP_MODE__FORCE_DARK_MODE);
 
-
-    private void comboBoxToolMonitor_IndexChanged(object sender, EventArgs e)
-    {
-        if (disableChangeFunc) return;
-
-        var monitor = sender.ToString().Substring(0, sender.ToString().IndexOf(":"));
-        /*string comName = toolMonitor.Items[i].ToString().Substring
-                    (0, toolMonitor.Items[i].ToString().IndexOf(":"));*/
-
-        var tmp = 0;
-
-        disableChangeFunc = true;
-
-        for (var i = 0; i < displays.Count; i++)
+        var data = new WindowCompositionAttributeData
         {
-            if (monitor.Equals(displays[i].displayName)) {
-                tmp = i;
-            } else {
-                toolMonitor = toolMonitors[i];
-                toolMonitor.SelectedIndex = 0;
-            }
-        }
-        disableChangeFunc = false;
+            Attribute = NativeMethods.WCA__USE_DARK_MODE_COLORS,
+            Data = Marshal.AllocHGlobal(sizeof(int)),
+            SizeOfData = sizeof(int)
+        };
+        Marshal.WriteInt32(data.Data, 1);
+        NativeMethods.SetWindowCompositionAttribute(Handle, ref data);
+        Marshal.FreeHGlobal(data.Data);
 
-        toolMonitor = toolMonitors[tmp];
-
-        if (toolMonitor.SelectedIndex == 0) return;
-
-
-        for (var i = 0; i < displays.Count; i++)
-        {
-            if (displays[i].displayName.Equals(toolMonitor.Items[0].ToString().Substring(0, toolMonitor.Items[0].ToString().IndexOf(":"))))
-            {
-                comboBoxMonitors.Text = i + 1 + ": " + displays[i].displayName;
-                numDisplay = i;
-                curDisplay.numDisplay = numDisplay;
-                curDisplay.displayLink = displays[i].displayLink;
-                curDisplay.isExternal = displays[i].isExternal;
-                break;
-            }
-        }
-
-        curDisplay.displayName = toolMonitor.Items[0].ToString().Substring(0, toolMonitor.Items[0].ToString().IndexOf(":"));
-
-        curDisplay.ramp_gbc = readIniSectionGbc(toolMonitor.Text);
-
-        //curDisplay.monitorBrightness = int.Parse(iniFile.Read("monitorBrightness", toolMonitor.Text));
-        //curDisplay.monitorContrast = int.Parse(iniFile.Read("monitorContrast", toolMonitor.Text));
-
-        initPresets();
-
-        gammaSrc = GammaSrcColor.Combined;
-        RenderCurInfo_ColorBtns();
-        RenderCurInfo_GBC();
-        ResetInfo_ColorTemp();
-        //ApplyCurMonitorBrightness();
-        RenderCurInfo_Monitors();
-        //ResetInfo_Overlay();
-        ApplyCurGammaRamp();
+        // then we'll handle all the various controls in our ui
+        ApplyDarkMode(this);
     }
-
-
-
 
     private static void ApplyDarkMode(Control control)
     {
+        // we'll go through recursively apply dark-mode colors to our non-dark controls
+        // (track-bar and check-box we ended up w custom impl .. so they are native dark mode)
+        // (combo-box we pulled from krypton w dark-mode theme)
+
         control.BackColor = BackgroundColor;
         control.ForeColor = ForegroundColor;
 
         foreach (Control childControl in control.Controls)
         {
-            if (childControl is Button button)
+            switch (childControl)
             {
-                button.BackColor = ButtonColor;
-                button.ForeColor = ButtonTextColor;
-                button.FlatStyle = FlatStyle.Flat;
-                button.FlatAppearance.BorderColor = ButtonBorderColor;
-                button.FlatAppearance.BorderSize = 1;
-            }
-            else if (childControl is TextBox textBox)
-            {
-                textBox.BackColor = BackgroundColor;
-                textBox.ForeColor = ForegroundColor;
-                textBox.BorderStyle = BorderStyle.None;
-            }
-            else if (childControl is ComboBox comboBox)
-            {
-                comboBox.FlatStyle = FlatStyle.Flat;
-                comboBox.BackColor = BackgroundColor;
-                comboBox.ForeColor = ForegroundColor;
-            }
-            else
-            {
-                ApplyDarkMode(childControl);
+                case Button button:
+                    button.BackColor = ButtonColor;
+                    button.ForeColor = ButtonTextColor;
+                    button.FlatStyle = FlatStyle.Flat;
+                    button.FlatAppearance.BorderColor = ButtonBorderColor;
+                    button.FlatAppearance.BorderSize = 1;
+                    break;
+                case TextBox textBox:
+                    textBox.BackColor = BackgroundColor;
+                    textBox.ForeColor = ForegroundColor;
+                    textBox.BorderStyle = BorderStyle.None;
+                    break;
+                default:
+                    ApplyDarkMode(childControl);
+                    break;
             }
         }
     }
-    private void EnableDarkMode()
-    {
-        NativeMethods.SetPreferredAppMode(PreferredAppMode.ForceDark);
-
-        var data = new WindowCompositionAttributeData
-        {
-            Attribute = WindowCompositionAttribute.WCA_USEDARKMODECOLORS,
-            Data = Marshal.AllocHGlobal(sizeof(int)),
-            SizeOfData = sizeof(int)
-        };
-
-        Marshal.WriteInt32(data.Data, 1);
-        NativeMethods.SetWindowCompositionAttribute(Handle, ref data);
-        Marshal.FreeHGlobal(data.Data);
-    }
 
 }
 
 
 
-
-internal enum PreferredAppMode
-{
-    Default,
-    AllowDark,
-    ForceDark,
-    ForceLight,
-    Max
-}
-
-internal enum WindowCompositionAttribute
-{
-    WCA_UNDEFINED = 0,
-    WCA_NCRENDERING_ENABLED = 1,
-    WCA_NCRENDERING_POLICY = 2,
-    WCA_TRANSITIONS_FORCEDISABLED = 3,
-    WCA_ALLOW_NCPAINT = 4,
-    WCA_CAPTION_BUTTON_BOUNDS = 5,
-    WCA_NONCLIENT_RTL_LAYOUT = 6,
-    WCA_FORCE_ICONIC_REPRESENTATION = 7,
-    WCA_EXTENDED_FRAME_BOUNDS = 8,
-    WCA_HAS_ICONIC_BITMAP = 9,
-    WCA_THEME_ATTRIBUTES = 10,
-    WCA_NCRENDERING_EXILED = 11,
-    WCA_NCADORNMENTINFO = 12,
-    WCA_EXCLUDED_FROM_LIVEPREVIEW = 13,
-    WCA_VIDEO_OVERLAY_ACTIVE = 14,
-    WCA_FORCE_ACTIVEWINDOW_APPEARANCE = 15,
-    WCA_DISALLOW_PEEK = 16,
-    WCA_CLOAK = 17,
-    WCA_CLOAKED = 18,
-    WCA_ACCENT_POLICY = 19,
-    WCA_FREEZE_REPRESENTATION = 20,
-    WCA_EVER_UNCLOAKED = 21,
-    WCA_VISUAL_OWNER = 22,
-    WCA_HOLOGRAPHIC = 23,
-    WCA_EXCLUDED_FROM_DDA = 24,
-    WCA_PASSIVEUPDATEMODE = 25,
-    WCA_USEDARKMODECOLORS = 26,
-    WCA_LAST = 27
-}
 
 [StructLayout(LayoutKind.Sequential)]
 internal struct WindowCompositionAttributeData
 {
-    public WindowCompositionAttribute Attribute;
+    public int Attribute;
     public IntPtr Data;
     public int SizeOfData;
 }
-
 internal static class NativeMethods
 {
+    public const int PREFERRED_APP_MODE__FORCE_DARK_MODE = 26;
+    public const int WCA__USE_DARK_MODE_COLORS = 26;
+
     [DllImport("uxtheme.dll", EntryPoint = "#135", SetLastError = true)]
-    public static extern int SetPreferredAppMode(PreferredAppMode appMode);
+    public static extern int SetPreferredAppMode(int appMode);
 
     [DllImport("user32.dll")]
     public static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
