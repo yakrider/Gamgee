@@ -1,13 +1,12 @@
-# Gamma Manager
+# Screenwise Gamgee
 
 Doesn't need setup, works from .exe file. The only additional .ini file is created in the same folder as .exe file (to save settings presets).
 
 Overrides all current gamma settings.
 
-![image](GammaManager.jpg?raw=true)
+![image](Gamgee.jpg?raw=true)
 
 Color buttons allow to manage gamma ramp options independently for rgb or altogether.
-Checkbox []+++ for extreme contrast values.
 
 Pull trackbar pointer for major changes, keyboard arrows or mouse clicks to sides from selected trackbar pointer for minor changes.
 

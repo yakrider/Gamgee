@@ -5,13 +5,13 @@ using System.Runtime.InteropServices;
 // Общие сведения об этой сборке предоставляются следующим набором
 // набора атрибутов. Измените значения этих атрибутов для изменения сведений,
 // связанных со сборкой.
-[assembly: AssemblyTitle("GammaManager")]
-[assembly: AssemblyDescription("Gamma Manager")]
+[assembly: AssemblyTitle("Gamgee")]
+[assembly: AssemblyDescription("Gamgee")]
 [assembly: AssemblyConfiguration("Release 1.2")]
-[assembly: AssemblyCompany("KrasnovM")]
-[assembly: AssemblyProduct("GammaManager")]
-[assembly: AssemblyCopyright("Copyright © 2023")]
-[assembly: AssemblyTrademark("KrasnovM")]
+[assembly: AssemblyCompany("yakrider")]
+[assembly: AssemblyProduct("Gamgee")]
+[assembly: AssemblyCopyright("Copyright © 2025")]
+[assembly: AssemblyTrademark("yakrider")]
 [assembly: AssemblyCulture("")]
 
 // Установка значения False для параметра ComVisible делает типы в этой сборке невидимыми

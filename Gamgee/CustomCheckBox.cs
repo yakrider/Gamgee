@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.Drawing.Text;
 using System.Drawing.Drawing2D;
 
-namespace Gamma_Manager;
+namespace Gamgee;
 
 public class CustomCheckBox : CheckBox
 {

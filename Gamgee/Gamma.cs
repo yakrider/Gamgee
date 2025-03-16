@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.Optimization;
 
-namespace Gamma_Manager;
+namespace Gamgee;
 
 
 

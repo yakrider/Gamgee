@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
-namespace Gamma_Manager;
+namespace Gamgee;
 
 internal static class Program
 {

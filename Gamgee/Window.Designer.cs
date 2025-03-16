@@ -2,7 +2,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace Gamma_Manager;
+namespace Gamgee;
 
 partial class Window
 {
@@ -451,7 +451,7 @@ partial class Window
         // pictureBox
         //
         this.pictureBox.BackColor = SystemColors.Control;
-        this.pictureBox.BackgroundImage = global::Gamma_Manager.Properties.Resources.TestMonitor;
+        this.pictureBox.BackgroundImage = global::Gamgee.Properties.Resources.TestMonitor;
         this.pictureBox.BackgroundImageLayout = ImageLayout.Stretch;
         this.pictureBox.ErrorImage = null;
         this.pictureBox.InitialImage = null;
@@ -466,7 +466,7 @@ partial class Window
         // notifyIcon
         //
         this.notifyIcon.Icon = ((Icon)(resources.GetObject("notifyIcon.Icon")));
-        this.notifyIcon.Text = "Gamma Manager";
+        this.notifyIcon.Text = "Gamgee";
         this.notifyIcon.Visible = true;
         this.notifyIcon.MouseClick += this.notifyIcon_Click;
         //

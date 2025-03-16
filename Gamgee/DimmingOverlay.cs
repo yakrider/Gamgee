@@ -1,4 +1,4 @@
-namespace Gamma_Manager;
+namespace Gamgee;
 
 using System;
 using System.Runtime.InteropServices;

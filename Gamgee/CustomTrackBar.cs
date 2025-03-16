@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace Gamma_Manager
+namespace Gamgee
 {
     public class CustomTrackBar : TrackBar
     {

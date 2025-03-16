@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{C625D24D-2184-496D-A439-CF2F405044BA}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>Gamma_Manager</RootNamespace>
-    <AssemblyName>GammaManager</AssemblyName>
+    <RootNamespace>Gamgee</RootNamespace>
+    <AssemblyName>Gamgee</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -23,11 +23,11 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>false</MapFileExtensions>
-    <SupportUrl>https://github.com/KrasnovM/Gamma-Manager</SupportUrl>
-    <ErrorReportUrl>https://github.com/KrasnovM/Gamma-Manager</ErrorReportUrl>
-    <ProductName>Gamma Manager</ProductName>
-    <PublisherName>KrasnovM</PublisherName>
-    <SuiteName>KrasnovM</SuiteName>
+    <SupportUrl>https://github.com/yakrider/gamgee</SupportUrl>
+    <ErrorReportUrl>https://github.com/yakrider/gamgee</ErrorReportUrl>
+    <ProductName>Gamgee</ProductName>
+    <PublisherName>yakrider</PublisherName>
+    <SuiteName>yakrider</SuiteName>
     <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
     <DisallowUrlActivation>true</DisallowUrlActivation>
     <TrustUrlParameters>true</TrustUrlParameters>

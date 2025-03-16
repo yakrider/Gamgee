@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace Gamma_Manager;
+namespace Gamgee;
 
 
 public partial class Window : Form
@@ -375,7 +375,7 @@ public partial class Window : Form
         customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
         customCulture.NumberFormat.NumberDecimalSeparator = ",";
 
-        iniFile = new IniFile("GammaManager.ini");
+        iniFile = new IniFile("Gamgee.ini");
         
         // Register the global hotkey from INI file (or use default if not specified)
         // To configure in INI file, add a [Hotkey] section with Key=G and Modifiers=Alt, Shift
