@@ -4,7 +4,7 @@ Doesn't need setup, works from .exe file. The only additional .ini file is creat
 
 Overrides all current gamma settings.
 
-![image](Gamgee.jpg?raw=true)
+<img src="Gamgee.jpg" alt="Gamgee.jpg" width="300" height="240">
 
 Color buttons allow to manage gamma ramp options independently for rgb or altogether.
 

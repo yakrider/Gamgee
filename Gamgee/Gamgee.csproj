@@ -107,7 +107,7 @@
     </Compile>
     <Compile Include="Display.cs" />
     <Compile Include="Gamma.cs" />
-    <Compile Include="IniFile.cs" />
+    <Compile Include="Presets.cs" />
     <Compile Include="DimmingOverlay.cs" />
     <Compile Include="Window.cs">
       <SubType>Form</SubType>

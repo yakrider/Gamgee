@@ -9,7 +9,6 @@ internal class DimmingOverlay
     private const int timerTickMs = 20;
 
     private IntPtr hwnd;
-    private IntPtr bgBrush;
     private IntPtr timerId;
     private DisplayInfo monitor;
 
@@ -21,7 +20,6 @@ internal class DimmingOverlay
     public DimmingOverlay(DisplayInfo monitor)
     {
         this.monitor = monitor;
-        bgBrush = CreateSolidBrush(0x000000);
 
         if (!isClassRegistered)
         {
@@ -34,7 +32,6 @@ internal class DimmingOverlay
     ~DimmingOverlay()
     {
         Disable();
-        DeleteObject(bgBrush);
     }
 
     private void Disable()
@@ -141,7 +138,7 @@ internal class DimmingOverlay
             hInstance = GetModuleHandle(null),
             hIcon = IntPtr.Zero,
             hCursor = IntPtr.Zero,
-            hbrBackground = bgBrush,
+            hbrBackground = CreateSolidBrush(0x000000),
             lpszMenuName = null,
             lpszClassName = "DimmingOverlayClass"
         };
